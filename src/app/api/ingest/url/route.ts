@@ -28,16 +28,22 @@ export async function POST(req: NextRequest) {
     const $ = cheerio.load(html);
     const fallbackTitle = $("title").first().text().trim() || url;
 
-    // Use Readability for clean article text
-    const dom = new JSDOM(html, { url });
-    const reader = new Readability(dom.window.document);
-    const article = reader.parse();
-
-    const title = article?.title?.trim() || fallbackTitle;
-    const content = article?.textContent?.trim() || $("body").text().trim();
+    // Use Readability for clean article text — wrap in try/catch since some
+    // pages (paywalls, SPAs, unusual HTML) can cause JSDOM to throw
+    let title = fallbackTitle;
+    let content = $("body").text().trim();
+    try {
+      const dom = new JSDOM(html, { url });
+      const reader = new Readability(dom.window.document);
+      const article = reader.parse();
+      if (article?.title) title = article.title.trim();
+      if (article?.textContent) content = article.textContent.trim();
+    } catch {
+      // fall through to cheerio-extracted content
+    }
 
     if (!content || content.length < 50) {
-      return NextResponse.json({ error: "Could not extract meaningful content from this URL." }, { status: 422 });
+      return NextResponse.json({ error: "Could not extract meaningful content from this URL. The page may be paywalled or require JavaScript." }, { status: 422 });
     }
 
     const id = uuidv4();

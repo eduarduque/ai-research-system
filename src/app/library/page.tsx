@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSources, getBriefs } from "@/lib/db";
 import type { Source, Brief } from "@/lib/types";
+import GenerateBriefButton from "./GenerateBriefButton";
 
 export default function LibraryPage() {
   const sources = getSources() as Source[];
@@ -61,12 +62,3 @@ export default function LibraryPage() {
   );
 }
 
-function GenerateBriefButton({ sourceId }: { sourceId: string }) {
-  return (
-    <form action={`/api/briefs/generate`} method="POST">
-      <Link href={`/ingest?generate=${sourceId}`} className="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium px-3 py-1.5 rounded transition-colors">
-        Gen Brief
-      </Link>
-    </form>
-  );
-}
