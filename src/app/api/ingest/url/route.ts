@@ -57,13 +57,11 @@ export async function POST(req: NextRequest) {
 
     insertSource(source);
 
-    if (process.env.OPENAI_API_KEY) {
-      try {
-        const embedding = await embedText(`${title}\n\n${content.slice(0, 8000)}`);
-        updateSourceEmbedding(id, embedding);
-      } catch {
-        // non-fatal — search falls back to keyword matching
-      }
+    try {
+      const embedding = await embedText(`${title}\n\n${content.slice(0, 8000)}`);
+      updateSourceEmbedding(id, embedding);
+    } catch {
+      // non-fatal — search falls back to keyword matching
     }
 
     return NextResponse.json(getSourceById(id), { status: 201 });

@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 import { getSourcesWithEmbeddings, getBriefs } from "@/lib/db";
 import { embedText, cosineSimilarity } from "@/lib/embeddings";
+import { getAIClient } from "@/lib/ai";
 import type { Brief } from "@/lib/types";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 type SourceRow = {
   id: string;
@@ -86,8 +84,9 @@ export async function POST(req: NextRequest) {
     let answerText: string;
 
     const sourceList = top.map((r) => `- ${r.source.title}: ${r.source.url}`).join("\n");
+    const ai = getAIClient();
 
-    if (process.env.OPENAI_API_KEY) {
+    if (ai) {
       try {
         const prompt = `You are a research assistant. Answer the question using only the provided research sources. Be concise and cite source numbers.
 
@@ -103,15 +102,15 @@ Return your answer in this exact format:
 ## Sources Used
 [List each source title and URL that you referenced]`;
 
-        const completion = await openai.chat.completions.create({
-          model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+        const completion = await ai.client.chat.completions.create({
+          model: ai.model,
           messages: [{ role: "user", content: prompt }],
           temperature: 0.2,
         });
         answerText = completion.choices[0].message.content || "No answer generated.";
       } catch (aiErr: unknown) {
         const msg = aiErr instanceof Error ? aiErr.message : String(aiErr);
-        console.warn("OpenAI answer synthesis failed, using fallback:", msg);
+        console.warn(`AI answer synthesis failed (${ai.provider}):`, msg);
         answerText = `## Answer\nCould not synthesize an AI answer (${msg.includes("429") ? "API quota exceeded" : "AI unavailable"}). Most relevant sources below.\n\n## Sources Used\n${sourceList}`;
       }
     } else {

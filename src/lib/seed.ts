@@ -40,12 +40,10 @@ export async function seedDefaultSources() {
         try {
           insertSource(source);
 
-          if (process.env.OPENAI_API_KEY) {
-            const embedding = await embedText(
-              `${source.title}\n\n${source.content.slice(0, 8000)}`
-            );
-            updateSourceEmbedding(id, embedding);
-          }
+          const embedding = await embedText(
+            `${source.title}\n\n${source.content.slice(0, 8000)}`
+          );
+          updateSourceEmbedding(id, embedding);
         } catch {
           // skip if insert fails (e.g. duplicate)
         }

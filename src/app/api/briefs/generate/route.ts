@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import OpenAI from "openai";
 import { getSourceById, insertBrief, getBriefBySourceId } from "@/lib/db";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { getAIClient } from "@/lib/ai";
 
 function buildMarkdown(
   title: string,
@@ -47,6 +45,15 @@ ${data.recommended_next_action}
 `;
 }
 
+function extractJSON(raw: string): Record<string, unknown> {
+  try { return JSON.parse(raw); } catch { /* try extraction below */ }
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (fenced) { try { return JSON.parse(fenced[1]); } catch { /* continue */ } }
+  const braces = raw.match(/(\{[\s\S]*\})/);
+  if (braces) { try { return JSON.parse(braces[1]); } catch { /* continue */ } }
+  throw new Error("No valid JSON found in model response");
+}
+
 function deterministicBrief(title: string, url: string, content: string) {
   const words = content.split(/\s+/).slice(0, 30).join(" ");
   return {
@@ -76,11 +83,34 @@ export async function POST(req: NextRequest) {
     const existing = getBriefBySourceId(source_id);
     if (existing) return NextResponse.json(existing);
 
-    const truncatedContent = source.content.slice(0, 4000);
-    let briefData;
-    let usedAI = false;
+    type BriefData = {
+      summary: string;
+      key_ideas: string[];
+      entities_topics: string[];
+      why_hunter_should_care: string;
+      opportunity_ideas: string[];
+      product_opportunity_score: number;
+      recommended_next_action: string;
+    };
 
-    if (process.env.OPENAI_API_KEY) {
+    function normalizeBriefData(raw: Record<string, unknown>): BriefData {
+      const arr = (v: unknown): string[] => Array.isArray(v) ? v.map(String) : [];
+      return {
+        summary: String(raw.summary || ""),
+        key_ideas: arr(raw.key_ideas),
+        entities_topics: arr(raw.entities_topics),
+        why_hunter_should_care: String(raw.why_hunter_should_care || ""),
+        opportunity_ideas: arr(raw.opportunity_ideas),
+        product_opportunity_score: Number(raw.product_opportunity_score) || 5,
+        recommended_next_action: String(raw.recommended_next_action || ""),
+      };
+    }
+
+    const truncatedContent = source.content.slice(0, 4000);
+    let briefData: BriefData;
+    const ai = getAIClient();
+
+    if (ai) {
       try {
         const prompt = `You are a research analyst. Analyze this article and return ONLY a valid JSON object (no markdown, no explanation).
 
@@ -97,26 +127,25 @@ Title: ${source.title}
 URL: ${source.url}
 Content: ${truncatedContent}`;
 
-        const completion = await openai.chat.completions.create({
-          model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
+        // Ollama doesn't guarantee response_format support across all models
+        const createOpts = {
+          model: ai.model,
+          messages: [{ role: "user" as const, content: prompt }],
           temperature: 0.3,
-          response_format: { type: "json_object" },
-        });
+          ...(ai.provider !== "ollama" && { response_format: { type: "json_object" as const } }),
+        };
+        const completion = await ai.client.chat.completions.create(createOpts);
 
         const raw = completion.choices[0].message.content || "{}";
-        briefData = JSON.parse(raw);
-        usedAI = true;
+        briefData = normalizeBriefData(extractJSON(raw));
       } catch (aiErr: unknown) {
         const msg = aiErr instanceof Error ? aiErr.message : String(aiErr);
-        console.warn("OpenAI brief generation failed, using fallback:", msg);
+        console.warn(`AI brief generation failed (${ai.provider}), using fallback:`, msg);
         briefData = deterministicBrief(source.title, source.url, source.content);
       }
     } else {
       briefData = deterministicBrief(source.title, source.url, source.content);
     }
-
-    void usedAI;
 
     const id = uuidv4();
     const now = new Date().toISOString();
@@ -126,13 +155,13 @@ Content: ${truncatedContent}`;
       id,
       source_id,
       markdown,
-      summary: briefData.summary || "",
-      key_ideas: JSON.stringify(briefData.key_ideas || []),
-      entities_topics: JSON.stringify(briefData.entities_topics || []),
-      opportunity_ideas: JSON.stringify(briefData.opportunity_ideas || []),
-      product_opportunity_score: briefData.product_opportunity_score || 5,
-      recommended_next_action: briefData.recommended_next_action || "",
-      why_hunter_should_care: briefData.why_hunter_should_care || "",
+      summary: briefData.summary,
+      key_ideas: JSON.stringify(briefData.key_ideas),
+      entities_topics: JSON.stringify(briefData.entities_topics),
+      opportunity_ideas: JSON.stringify(briefData.opportunity_ideas),
+      product_opportunity_score: briefData.product_opportunity_score,
+      recommended_next_action: briefData.recommended_next_action,
+      why_hunter_should_care: briefData.why_hunter_should_care,
       created_at: now,
     };
 
