@@ -78,9 +78,11 @@ export async function POST(req: NextRequest) {
 
     const truncatedContent = source.content.slice(0, 4000);
     let briefData;
+    let usedAI = false;
 
     if (process.env.OPENAI_API_KEY) {
-      const prompt = `You are a research analyst. Analyze this article and return ONLY a valid JSON object (no markdown, no explanation).
+      try {
+        const prompt = `You are a research analyst. Analyze this article and return ONLY a valid JSON object (no markdown, no explanation).
 
 JSON fields required:
 - summary: string (2-3 sentences)
@@ -95,18 +97,26 @@ Title: ${source.title}
 URL: ${source.url}
 Content: ${truncatedContent}`;
 
-      const completion = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-        response_format: { type: "json_object" },
-      });
+        const completion = await openai.chat.completions.create({
+          model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.3,
+          response_format: { type: "json_object" },
+        });
 
-      const raw = completion.choices[0].message.content || "{}";
-      briefData = JSON.parse(raw);
+        const raw = completion.choices[0].message.content || "{}";
+        briefData = JSON.parse(raw);
+        usedAI = true;
+      } catch (aiErr: unknown) {
+        const msg = aiErr instanceof Error ? aiErr.message : String(aiErr);
+        console.warn("OpenAI brief generation failed, using fallback:", msg);
+        briefData = deterministicBrief(source.title, source.url, source.content);
+      }
     } else {
       briefData = deterministicBrief(source.title, source.url, source.content);
     }
+
+    void usedAI;
 
     const id = uuidv4();
     const now = new Date().toISOString();

@@ -85,8 +85,11 @@ export async function POST(req: NextRequest) {
 
     let answerText: string;
 
+    const sourceList = top.map((r) => `- ${r.source.title}: ${r.source.url}`).join("\n");
+
     if (process.env.OPENAI_API_KEY) {
-      const prompt = `You are a research assistant. Answer the question using only the provided research sources. Be concise and cite source numbers.
+      try {
+        const prompt = `You are a research assistant. Answer the question using only the provided research sources. Be concise and cite source numbers.
 
 QUESTION: ${question}
 
@@ -100,15 +103,19 @@ Return your answer in this exact format:
 ## Sources Used
 [List each source title and URL that you referenced]`;
 
-      const completion = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.2,
-      });
-      answerText = completion.choices[0].message.content || "No answer generated.";
+        const completion = await openai.chat.completions.create({
+          model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.2,
+        });
+        answerText = completion.choices[0].message.content || "No answer generated.";
+      } catch (aiErr: unknown) {
+        const msg = aiErr instanceof Error ? aiErr.message : String(aiErr);
+        console.warn("OpenAI answer synthesis failed, using fallback:", msg);
+        answerText = `## Answer\nCould not synthesize an AI answer (${msg.includes("429") ? "API quota exceeded" : "AI unavailable"}). Most relevant sources below.\n\n## Sources Used\n${sourceList}`;
+      }
     } else {
-      const sourceList = top.map((r) => `- ${r.source.title}: ${r.source.url}`).join("\n");
-      answerText = `## Answer\nHere are the most relevant sources for "${question}". (AI answer synthesis requires OPENAI_API_KEY.)\n\n## Sources Used\n${sourceList}`;
+      answerText = `## Answer\nHere are the most relevant sources for "${question}".\n\n## Sources Used\n${sourceList}`;
     }
 
     return NextResponse.json({
