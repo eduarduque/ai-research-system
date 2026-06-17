@@ -12,11 +12,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "feedUrl is required" }, { status: 400 });
     }
 
+    // Fetch manually so we control headers — many sites block requests without a User-Agent
+    let feedText: string;
+    try {
+      const res = await fetch(feedUrl, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; ResearchBot/1.0)" },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      feedText = await res.text();
+    } catch {
+      return NextResponse.json({ error: "Could not reach the feed URL. It may be down or blocking requests." }, { status: 422 });
+    }
+
     let feed;
     try {
-      feed = await parser.parseURL(feedUrl);
+      feed = await parser.parseString(feedText);
     } catch {
-      return NextResponse.json({ error: "Could not parse RSS feed. The feed URL may be invalid or unreachable." }, { status: 422 });
+      return NextResponse.json({ error: "Could not parse RSS feed. The URL may not be a valid RSS/Atom feed." }, { status: 422 });
     }
 
     const items = (feed.items || []).slice(0, 20).map((item) => ({

@@ -72,10 +72,10 @@ function initSchema(db: Database.Database) {
     );
     const now = new Date().toISOString();
     const feeds = [
-      { id: "feed-openai", name: "OpenAI Blog", url: "https://openai.com/blog/rss.xml" },
-      { id: "feed-anthropic", name: "Anthropic News", url: "https://www.anthropic.com/rss.xml" },
       { id: "feed-hn", name: "Hacker News", url: "https://news.ycombinator.com/rss" },
       { id: "feed-tc", name: "TechCrunch AI", url: "https://techcrunch.com/category/artificial-intelligence/feed/" },
+      { id: "feed-vb", name: "VentureBeat AI", url: "https://venturebeat.com/category/ai/feed/" },
+      { id: "feed-verge", name: "The Verge AI", url: "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml" },
     ];
     for (const f of feeds) {
       insert.run(f.id, f.name, f.url, now);

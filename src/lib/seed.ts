@@ -4,11 +4,10 @@ import { getSources, insertSource, updateSourceEmbedding } from "./db";
 import { embedText } from "./embeddings";
 
 const DEFAULT_FEEDS = [
-  { name: "OpenAI Blog", url: "https://openai.com/blog/rss.xml" },
-  { name: "Anthropic News", url: "https://www.anthropic.com/rss.xml" },
   { name: "Hacker News", url: "https://news.ycombinator.com/rss" },
   { name: "TechCrunch AI", url: "https://techcrunch.com/category/artificial-intelligence/feed/" },
   { name: "VentureBeat AI", url: "https://venturebeat.com/category/ai/feed/" },
+  { name: "The Verge AI", url: "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml" },
   { name: "MIT Technology Review", url: "https://www.technologyreview.com/feed/" },
 ];
 
