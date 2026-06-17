@@ -3,7 +3,8 @@ import * as cheerio from "cheerio";
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import { v4 as uuidv4 } from "uuid";
-import { insertSource, getSourceById } from "@/lib/db";
+import { insertSource, getSourceById, updateSourceEmbedding } from "@/lib/db";
+import { embedText } from "@/lib/embeddings";
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,6 +50,16 @@ export async function POST(req: NextRequest) {
     };
 
     insertSource(source);
+
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const embedding = await embedText(`${title}\n\n${content.slice(0, 8000)}`);
+        updateSourceEmbedding(id, embedding);
+      } catch {
+        // non-fatal — search falls back to keyword matching
+      }
+    }
+
     return NextResponse.json(getSourceById(id), { status: 201 });
   } catch (err) {
     console.error("ingest/url error:", err);

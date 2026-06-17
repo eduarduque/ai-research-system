@@ -30,7 +30,8 @@ function initSchema(db: Database.Database) {
       title TEXT NOT NULL,
       url TEXT NOT NULL,
       content TEXT NOT NULL,
-      date_ingested TEXT NOT NULL
+      date_ingested TEXT NOT NULL,
+      embedding TEXT
     );
 
     CREATE TABLE IF NOT EXISTS briefs (
@@ -55,6 +56,12 @@ function initSchema(db: Database.Database) {
       created_at TEXT NOT NULL
     );
   `);
+
+  // Migrate existing databases that don't have the embedding column yet
+  const cols = db.prepare("PRAGMA table_info(sources)").all() as { name: string }[];
+  if (!cols.find((c) => c.name === "embedding")) {
+    db.exec("ALTER TABLE sources ADD COLUMN embedding TEXT");
+  }
 
   const row = db
     .prepare("SELECT COUNT(*) as count FROM rss_feeds")
@@ -97,6 +104,18 @@ export function insertSource(source: {
       "INSERT INTO sources (id, title, url, content, date_ingested) VALUES (@id, @title, @url, @content, @date_ingested)"
     )
     .run(source);
+}
+
+export function updateSourceEmbedding(id: string, embedding: number[]) {
+  getDb()
+    .prepare("UPDATE sources SET embedding = ? WHERE id = ?")
+    .run(JSON.stringify(embedding), id);
+}
+
+export function getSourcesWithEmbeddings() {
+  return getDb()
+    .prepare("SELECT id, title, url, content, date_ingested, embedding FROM sources ORDER BY date_ingested DESC")
+    .all();
 }
 
 // Briefs

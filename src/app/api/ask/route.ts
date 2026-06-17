@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { getSources, getBriefs } from "@/lib/db";
-import type { Source, Brief } from "@/lib/types";
+import { getSourcesWithEmbeddings, getBriefs } from "@/lib/db";
+import { embedText, cosineSimilarity } from "@/lib/embeddings";
+import type { Brief } from "@/lib/types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-function scoreDoc(query: string, text: string): number {
+type SourceRow = {
+  id: string;
+  title: string;
+  url: string;
+  content: string;
+  date_ingested: string;
+  embedding: string | null;
+};
+
+function keywordScore(query: string, text: string): number {
   const words = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
   const lower = text.toLowerCase();
   return words.reduce((acc, w) => acc + (lower.includes(w) ? 1 : 0), 0);
@@ -18,15 +28,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "question is required" }, { status: 400 });
     }
 
-    const sources = getSources() as Source[];
+    const sources = getSourcesWithEmbeddings() as SourceRow[];
     const briefs = getBriefs() as (Brief & { source_title: string; source_url: string })[];
 
-    // Score each source by keyword overlap
-    const scored = sources.map((s) => {
-      const brief = briefs.find((b) => b.source_id === s.id);
-      const text = [s.title, s.content, brief?.summary || "", brief?.markdown || ""].join(" ");
-      return { source: s, brief, score: scoreDoc(question, text) };
-    });
+    if (sources.length === 0) {
+      return NextResponse.json({
+        answer: "## Answer\nNo research saved yet. Ingest some sources first.\n\n## Sources Used\nNone",
+        sources: [],
+      });
+    }
+
+    let scored: { source: SourceRow; brief: Brief | undefined; score: number }[];
+
+    if (process.env.OPENAI_API_KEY) {
+      const queryEmbedding = await embedText(question);
+      scored = sources.map((s) => {
+        const brief = briefs.find((b) => b.source_id === s.id);
+        let score: number;
+        if (s.embedding) {
+          score = cosineSimilarity(queryEmbedding, JSON.parse(s.embedding) as number[]);
+        } else {
+          // source was ingested before vector support — fall back to keyword
+          const text = [s.title, s.content, brief?.summary || ""].join(" ");
+          score = keywordScore(question, text) * 0.05;
+        }
+        return { source: s, brief, score };
+      });
+    } else {
+      scored = sources.map((s) => {
+        const brief = briefs.find((b) => b.source_id === s.id);
+        const text = [s.title, s.content, brief?.summary || "", brief?.markdown || ""].join(" ");
+        return { source: s, brief, score: keywordScore(question, text) };
+      });
+    }
 
     const top = scored
       .filter((r) => r.score > 0)
@@ -35,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     if (top.length === 0) {
       return NextResponse.json({
-        answer: "## Answer\nNo relevant research found in your library for this question. Try ingesting more sources first.\n\n## Sources Used\nNone",
+        answer: "## Answer\nNo relevant research found for this question. Try ingesting more sources.\n\n## Sources Used\nNone",
         sources: [],
       });
     }
@@ -74,7 +108,7 @@ Return your answer in this exact format:
       answerText = completion.choices[0].message.content || "No answer generated.";
     } else {
       const sourceList = top.map((r) => `- ${r.source.title}: ${r.source.url}`).join("\n");
-      answerText = `## Answer\nBased on your saved research, here are the most relevant sources for "${question}". (AI answer generation requires OPENAI_API_KEY.)\n\n## Sources Used\n${sourceList}`;
+      answerText = `## Answer\nHere are the most relevant sources for "${question}". (AI answer synthesis requires OPENAI_API_KEY.)\n\n## Sources Used\n${sourceList}`;
     }
 
     return NextResponse.json({

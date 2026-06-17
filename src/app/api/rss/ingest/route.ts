@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { insertSource, getSourceById } from "@/lib/db";
+import { insertSource, getSourceById, updateSourceEmbedding } from "@/lib/db";
+import { embedText } from "@/lib/embeddings";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,6 +20,16 @@ export async function POST(req: NextRequest) {
     };
 
     insertSource(source);
+
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const embedding = await embedText(`${source.title}\n\n${source.content.slice(0, 8000)}`);
+        updateSourceEmbedding(id, embedding);
+      } catch {
+        // non-fatal — search falls back to keyword matching
+      }
+    }
+
     return NextResponse.json(getSourceById(id), { status: 201 });
   } catch (err) {
     console.error("rss/ingest error:", err);
