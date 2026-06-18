@@ -93,12 +93,26 @@ export async function POST(req: NextRequest) {
       recommended_next_action: string;
     };
 
-    function normalizeBriefData(raw: Record<string, unknown>): BriefData {
+    function normalizeBriefData(raw: Record<string, unknown>, articleContent: string): BriefData {
       const arr = (v: unknown): string[] => Array.isArray(v) ? v.map(String) : [];
+      const src = articleContent.toLowerCase();
+
+      // The model extracts its own grounding names in _grounding.names before analyzing.
+      // We use those as the authoritative set of what belongs in entities_topics.
+      const grounding = (raw._grounding ?? {}) as Record<string, unknown>;
+      const groundedNames = new Set(arr(grounding.names).map(n => n.toLowerCase()));
+
+      // Validate entities: must appear in the article text OR in model's own extracted names.
+      // This removes GPT-3/DALL-E style hallucinations where the model drew from training knowledge.
+      const rawEntities = arr(raw.entities_topics);
+      const validEntities = rawEntities.filter(e =>
+        src.includes(e.toLowerCase()) || groundedNames.has(e.toLowerCase())
+      );
+
       return {
         summary: String(raw.summary || ""),
         key_ideas: arr(raw.key_ideas),
-        entities_topics: arr(raw.entities_topics),
+        entities_topics: validEntities.length >= 2 ? validEntities : rawEntities,
         why_hunter_should_care: String(raw.why_hunter_should_care || ""),
         opportunity_ideas: arr(raw.opportunity_ideas),
         product_opportunity_score: Number(raw.product_opportunity_score) || 5,
@@ -113,34 +127,35 @@ export async function POST(req: NextRequest) {
 
     if (ai) {
       try {
-        const prompt = `You are a senior research analyst at XPM Labs, a product strategy firm building AI-native tools and agentic systems. Your reader is Hunter, a product strategist who tracks:
+        const prompt = `You are a senior research analyst at XPM Labs, a product strategy firm building AI-native tools and agentic systems. Your reader is Hunter, a product strategist who tracks AI capability frontiers, agentic systems, competitive dynamics between tech companies, and patterns in what products win or lose at market entry.
 
-- AI capability frontiers: what models can do now that they couldn't 6 months ago
-- Agentic AI: autonomous workflows, LLM-powered loops, operator frameworks
-- Competitive dynamics between AI companies: OpenAI, Anthropic, Google, Meta, Mistral, Snap, Apple
-- Consumer vs enterprise pricing dynamics and what causes new hardware/software categories to succeed or fail
-- Patterns in what tech products win or lose at market entry
+YOUR TASK HAS TWO STEPS. Fill the JSON in this exact order:
 
-Return ONLY a valid JSON object. No markdown, no code fences, no explanation — raw JSON only.
+STEP 1 — Fill "_grounding" first by reading the article and copying verbatim:
+  - "numbers": every specific figure, statistic, date, or financial amount that appears in the article
+  - "names": every product name, company name, person name, and technology that appears in the article
 
-JSON FIELDS:
-- summary: string — 2-3 sentences. Be specific. Include the key number, name, or finding if one exists in the article.
-- key_ideas: string[] — 3-5 items. Must be actual insights or findings, NOT rephrased title words. Each item should be a complete thought that adds information.
-- entities_topics: string[] — 3-5 specific product names, company names, people, or technical concepts from the article.
-- why_hunter_should_care: string — ONE specific strategic implication. Do NOT write generic statements like "it is important to track tech companies." Ask: what would a smart product strategist do differently after reading this? What pattern does this confirm or break? Name the actual insight.
-- opportunity_ideas: string[] — 2-3 concrete moves FOR Hunter and XPM Labs based on what this article reveals. These are NOT advice for the company in the article — they are moves Hunter should consider. NOT "explore pricing models." YES: "Build for Meta Ray-Bans' price point — the AR market is bifurcating and cheap+social is winning."
-- product_opportunity_score: number — 1-10, where 10 = directly actionable for an AI product company right now, 1 = interesting but no clear angle.
-- recommended_next_action: string — one specific action Hunter should take in the next 48 hours based on this article.
+STEP 2 — Fill all remaining fields using ONLY what you listed in _grounding. Do not introduce any name, number, or product that is not in _grounding.
+
+JSON FIELDS (fill in this order):
+"_grounding": { "numbers": string[], "names": string[] }
+"summary": 2-3 sentences using specific figures from _grounding.numbers and names from _grounding.names
+"key_ideas": 3-5 complete insights from the article — not rephrased title words, actual findings with specifics
+"entities_topics": 3-5 items chosen from _grounding.names only
+"why_hunter_should_care": ONE specific strategic implication for Hunter. Not "important to track companies." Name the actual insight: what would a smart product strategist do differently after reading this?
+"opportunity_ideas": 2-3 moves FOR Hunter and XPM Labs — not advice for the company in the article. Concrete enough to act on.
+"product_opportunity_score": 1-10 — how directly actionable is this for an AI product company right now?
+"recommended_next_action": one specific thing Hunter should do in the next 48 hours
 
 EXAMPLE — bad vs good for why_hunter_should_care:
-BAD: "As a research analyst it is important to track the performance of tech companies and their product launches."
-GOOD: "Snap's failure confirms the AR market is bifurcating: Meta wins consumer with cheap+social, Apple owns premium+enterprise. There is no viable middle. Any product strategy that tries to price between them will fail the same way Specs is failing."
+BAD: "It is important to track the performance of tech companies and their product launches."
+GOOD: "Snap's failure confirms the AR market is bifurcating: Meta wins consumer with cheap+social, Apple owns premium+enterprise. Any product strategy that tries to price between them will fail the same way Specs is failing."
 
 EXAMPLE — bad vs good for opportunity_ideas:
 BAD: "Explore alternative pricing models for AR glasses"
 GOOD: "Target Meta Ray-Bans developers now — build AI overlay apps for $300 hardware before the platform matures and competition locks in"
 
-GROUNDING RULE: Use ONLY facts, names, products, and figures that appear in the article content below. Do NOT add details from your training knowledge. If the article does not mention a specific product, person, or number — do not include it.
+Return ONLY a valid JSON object. No markdown, no code fences, no explanation.
 
 Article:
 Title: ${source.title}
@@ -157,7 +172,7 @@ Content: ${truncatedContent}`;
         const completion = await ai.client.chat.completions.create(createOpts);
 
         const raw = completion.choices[0].message.content || "{}";
-        briefData = normalizeBriefData(extractJSON(raw));
+        briefData = normalizeBriefData(extractJSON(raw), truncatedContent);
       } catch (aiErr: unknown) {
         const msg = aiErr instanceof Error ? aiErr.message : String(aiErr);
         console.warn(`AI brief generation failed (${ai.provider}), using fallback:`, msg);
