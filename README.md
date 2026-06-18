@@ -2,7 +2,7 @@
 
 A local research tool that ingests articles and RSS feeds, generates AI-powered research briefs, lets you ask questions across your saved research, and visualizes topic connections in a knowledge graph.
 
-Works entirely on your machine. No cloud database, no subscription — just paste a URL, get a brief.
+Works entirely on your machine. No cloud database, no subscription, no account required — just paste a URL, get a brief.
 
 ---
 
