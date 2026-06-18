@@ -106,23 +106,41 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    const truncatedContent = source.content.slice(0, 4000);
+    // 6000 chars fits within most local model context windows while giving much more article content
+    const truncatedContent = source.content.slice(0, 6000);
     let briefData: BriefData;
     const ai = getAIClient();
 
     if (ai) {
       try {
-        const prompt = `You are a research analyst. Analyze this article and return ONLY a valid JSON object (no markdown, no explanation).
+        const prompt = `You are a senior research analyst at XPM Labs, a product strategy firm building AI-native tools and agentic systems. Your reader is Hunter, a product strategist who tracks:
 
-JSON fields required:
-- summary: string (2-3 sentences)
-- key_ideas: string[] (3-5 items)
-- entities_topics: string[] (3-5 named entities or topics)
-- why_hunter_should_care: string (relevance to XPM, XPM Labs, AI systems, or product strategy)
-- opportunity_ideas: string[] (2-3 product or strategy opportunities)
-- product_opportunity_score: number (1-10)
-- recommended_next_action: string (one clear action)
+- AI capability frontiers: what models can do now that they couldn't 6 months ago
+- Agentic AI: autonomous workflows, LLM-powered loops, operator frameworks
+- Competitive dynamics between AI companies: OpenAI, Anthropic, Google, Meta, Mistral, Snap, Apple
+- Consumer vs enterprise pricing dynamics and what causes new hardware/software categories to succeed or fail
+- Patterns in what tech products win or lose at market entry
 
+Return ONLY a valid JSON object. No markdown, no code fences, no explanation — raw JSON only.
+
+JSON FIELDS:
+- summary: string — 2-3 sentences. Be specific. Include the key number, name, or finding if one exists in the article.
+- key_ideas: string[] — 3-5 items. Must be actual insights or findings, NOT rephrased title words. Each item should be a complete thought that adds information.
+- entities_topics: string[] — 3-5 specific product names, company names, people, or technical concepts from the article.
+- why_hunter_should_care: string — ONE specific strategic implication. Do NOT write generic statements like "it is important to track tech companies." Ask: what would a smart product strategist do differently after reading this? What pattern does this confirm or break? Name the actual insight.
+- opportunity_ideas: string[] — 2-3 concrete moves specific enough that someone could act on them. NOT "explore pricing models." YES: "Build for Meta Ray-Bans' price point — the AR market is bifurcating and cheap+social is winning."
+- product_opportunity_score: number — 1-10, where 10 = directly actionable for an AI product company right now, 1 = interesting but no clear angle.
+- recommended_next_action: string — one specific action Hunter should take in the next 48 hours based on this article.
+
+EXAMPLE — bad vs good for why_hunter_should_care:
+BAD: "As a research analyst it is important to track the performance of tech companies and their product launches."
+GOOD: "Snap's failure confirms the AR market is bifurcating: Meta wins consumer with cheap+social, Apple owns premium+enterprise. There is no viable middle. Any product strategy that tries to price between them will fail the same way Specs is failing."
+
+EXAMPLE — bad vs good for opportunity_ideas:
+BAD: "Explore alternative pricing models for AR glasses"
+GOOD: "Target Meta Ray-Bans developers now — build AI overlay apps for $300 hardware before the platform matures and competition locks in"
+
+Article:
 Title: ${source.title}
 URL: ${source.url}
 Content: ${truncatedContent}`;

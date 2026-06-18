@@ -88,7 +88,9 @@ export async function POST(req: NextRequest) {
 
     if (ai) {
       try {
-        const prompt = `You are a research assistant. Answer the question using only the provided research sources. Be concise and cite source numbers.
+        const prompt = `You are a senior research analyst at XPM Labs, a product strategy firm building AI-native tools and agentic systems. Your reader is Hunter, a product strategist focused on AI capability frontiers, agentic systems, and competitive dynamics between major tech companies.
+
+Answer the question below using ONLY the provided research sources. Be specific — cite actual numbers, names, and findings from the sources. Do not give generic analysis.
 
 QUESTION: ${question}
 
@@ -97,7 +99,7 @@ ${context}
 
 Return your answer in this exact format:
 ## Answer
-[Your answer here, referencing sources by number like [1], [2]]
+[Your answer here — be specific and cite sources by number like [1], [2]. Name actual findings, not summaries.]
 
 ## Sources Used
 [List each source title and URL that you referenced]`;
