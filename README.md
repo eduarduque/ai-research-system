@@ -1,105 +1,107 @@
 # AI Research Intelligence System
 
-A local-first MVP that captures AI research from URLs and RSS feeds, generates AI research briefs, supports RAG-based semantic search, and visualizes topic relationships in a knowledge graph.
+A local research tool that ingests articles and RSS feeds, generates AI-powered research briefs, lets you ask questions across your saved research, and visualizes topic connections in a knowledge graph.
 
-## Features
-
-- **URL Ingestion** — paste any article URL to extract and save content
-- **RSS Feeds** — browse Hacker News, TechCrunch AI, VentureBeat AI, The Verge AI, MIT Technology Review
-- **AI Research Briefs** — structured briefs with summary, key ideas, entities, opportunity score, and next action
-- **Research Library** — browse all saved sources and briefs
-- **RAG Search** — ask questions across saved research with vector semantic search and cited answers
-- **Knowledge Graph** — interactive React Flow graph connecting sources → topics → opportunities
-- **Slack Stub** — documented `/research [URL]` command flow + live API endpoint
-
-## Stack
-
-- Next.js 16 (App Router, TypeScript, Tailwind CSS)
-- SQLite via `better-sqlite3`
-- `@xyflow/react` (React Flow) for the knowledge graph
-- `rss-parser`, `cheerio`, `@mozilla/readability` for ingestion
-- OpenAI SDK (also used for Groq and Ollama via compatible API)
+Works entirely on your machine. No cloud database, no subscription — just paste a URL, get a brief.
 
 ---
 
-## Setup
+## What It Does
 
-### 1. Install dependencies
+- **Ingest any URL** — paste an article link, the app fetches and extracts the full text (handles JavaScript-rendered pages automatically using your local Chrome)
+- **RSS feeds** — browse Hacker News, TechCrunch AI, VentureBeat AI, The Verge AI, MIT Technology Review — one click to save any item
+- **AI Research Briefs** — structured analysis: summary, key ideas, entities, why it matters, opportunity areas, relevance score, next action
+- **Research Library** — all saved articles and their briefs in one place
+- **Ask questions** — type a question, get an answer citing your saved articles by source
+- **Knowledge Graph** — visual map of how your sources connect through shared topics
+
+---
+
+## Prerequisites
+
+- [Node.js 20+](https://nodejs.org/) — required
+- Google Chrome — required for scraping JavaScript-rendered pages (most computers already have it)
+- An AI provider — pick one from the options below (at least one is needed for real briefs)
+
+---
+
+## Quick Start
 
 ```bash
+# 1. Clone and install
+git clone https://github.com/eduarduque/ai-research-system.git
+cd ai-research-system
 npm install
-```
 
-### 2. Choose your AI provider (pick one)
-
-The app works with **OpenAI**, **Groq** (free), or **Ollama** (local, free). Copy the example file and fill in one provider:
-
-```bash
+# 2. Set up your AI provider (see section below)
 cp .env.example .env.local
+# Edit .env.local and uncomment one provider
+
+# 3. Run
+npm run dev
 ```
+
+Open [http://localhost:3000](http://localhost:3000). Five RSS feeds are seeded automatically on first run.
 
 ---
 
-#### Option A — OpenAI (paid, best quality)
+## Choosing an AI Provider
 
-```env
-OPENAI_API_KEY=sk-proj-...
-```
+Open `.env.local` and uncomment **one** of these options. The app uses whichever is configured first.
 
-Get a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys). A few dollars of credit covers heavy use with `gpt-4o-mini`.
+### Option A — Groq (recommended: free, fast, 2-minute setup)
 
----
-
-#### Option B — Groq (free cloud, 2-minute setup)
+No credit card. No download. Sign up at [console.groq.com](https://console.groq.com), create an API key, paste it in `.env.local`:
 
 ```env
 GROQ_API_KEY=gsk_...
 ```
 
-1. Sign up at [console.groq.com](https://console.groq.com)
-2. Go to **API Keys** → create a key
-3. Paste it in `.env.local` — done. No credit card needed.
-
-Groq runs Llama 3.1 8B with a generous free tier (14,400 requests/day).
+That's it. Uses Llama 3.1 8B with a generous free tier.
 
 ---
 
-#### Option C — Ollama (local, free forever, no internet after setup)
+### Option B — Ollama (local, free forever, works offline)
 
-1. **Install Ollama** — [ollama.com/download](https://ollama.com/download)
+Runs a language model on your own machine. One-time setup:
 
-2. **Pull the models** (one-time download):
+1. Install Ollama from [ollama.com/download](https://ollama.com/download)
+2. Open a terminal and pull the models:
 
 ```bash
-# Chat model — best JSON output on a laptop (4.7 GB)
+# Chat model — best instruction following on a laptop (4.7 GB)
 ollama pull qwen2.5:7b
 
-# Embedding model — semantic search (274 MB only)
+# Embedding model — powers semantic search (274 MB)
 ollama pull nomic-embed-text
 ```
 
-3. **Add to `.env.local`**:
+3. Add to `.env.local`:
 
 ```env
 OLLAMA_MODEL=qwen2.5:7b
 OLLAMA_EMBED_MODEL=nomic-embed-text
 ```
 
-Ollama starts automatically at `http://localhost:11434` when you run a model. No API key needed.
+Ollama starts automatically at `http://localhost:11434`. No API key needed.
 
-> **Already have a different model?** Any model that supports instruction following works. Just set `OLLAMA_MODEL=your-model-name`. `dolphin-llama3:8b`, `mistral`, and `llama3.1:8b` all work well.
+**Already have a different model?** Any instruction-tuned model works. Just set `OLLAMA_MODEL=your-model-name`.
 
 ---
 
-### 3. Run the dev server
+### Option C — OpenAI (paid, highest quality)
 
-```bash
-npm run dev
+```env
+OPENAI_API_KEY=sk-proj-...
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Get a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys). Uses `gpt-4o-mini` by default.
 
-The SQLite database is auto-created at `data/research.db` on first run. Five RSS feeds are seeded automatically with the latest articles.
+---
+
+### No AI provider
+
+The app still works — URL ingestion, RSS, library, graph all function normally. Brief generation falls back to a basic template without real analysis.
 
 ---
 
@@ -107,31 +109,31 @@ The SQLite database is auto-created at `data/research.db` on first run. Five RSS
 
 | Variable | Default | Description |
 |---|---|---|
-| `OPENAI_API_KEY` | — | OpenAI API key (provider priority 1) |
-| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI chat model |
-| `GROQ_API_KEY` | — | Groq API key (provider priority 2) |
-| `GROQ_MODEL` | `llama-3.1-8b-instant` | Groq chat model |
-| `OLLAMA_MODEL` | — | Ollama chat model name, e.g. `qwen2.5:7b` (provider priority 3) |
+| `GROQ_API_KEY` | — | Groq API key (free tier available) |
+| `GROQ_MODEL` | `llama-3.1-8b-instant` | Groq model name |
+| `OPENAI_API_KEY` | — | OpenAI API key |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model name |
+| `OLLAMA_MODEL` | — | Ollama model name, e.g. `qwen2.5:7b` |
 | `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Ollama embedding model |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `DATA_DIR` | `./data` | SQLite database directory |
-
-Only one provider is used at a time. The app checks: OpenAI → Groq → Ollama → deterministic fallback.
+| `DATA_DIR` | `./data` | Directory for the SQLite database |
 
 ---
 
 ## Pages
 
-| Route | Description |
+| Route | What it does |
 |---|---|
-| `/` | Dashboard with stats and quick actions |
-| `/ingest` | Paste a URL to ingest |
-| `/rss` | Browse RSS feeds and ingest items |
-| `/library` | All saved sources and briefs |
-| `/briefs/[id]` | Full brief detail view |
-| `/ask` | Ask questions across saved research |
-| `/graph` | Knowledge graph visualization |
-| `/slack` | Slack integration stub |
+| `/` | Dashboard — stats and quick actions |
+| `/ingest` | Paste any URL to save and extract content |
+| `/rss` | Browse RSS feeds and save items |
+| `/library` | All saved sources with brief generation |
+| `/briefs/[id]` | Full brief for a source |
+| `/ask` | Ask questions across your saved research |
+| `/graph` | Knowledge graph of sources and topics |
+| `/slack` | Slack integration stub and API docs |
+
+---
 
 ## API Routes
 
@@ -150,24 +152,21 @@ Only one provider is used at a time. The app checks: OpenAI → Groq → Ollama 
 
 ---
 
-## What I Built
+## Stack
 
-Full MVP covering all Level 1 and Level 2 requirements from the PRD. URL and RSS ingestion work end-to-end. AI briefs are generated with structured JSON and rendered as rich cards. RAG search uses vector embeddings (OpenAI or Ollama `nomic-embed-text`) with cosine similarity ranking and LLM synthesis. The knowledge graph uses React Flow with color-coded node types. Slack stub is documented and the endpoint is live.
+- **Next.js 16** — App Router, TypeScript, Tailwind CSS
+- **SQLite** via `better-sqlite3` — local database, auto-created on first run
+- **Puppeteer Core** — headless Chrome for JavaScript-rendered pages
+- **OpenAI SDK** — used for all three AI providers (OpenAI, Groq, Ollama share the same API format)
+- **Vector embeddings** — semantic search via OpenAI `text-embedding-3-small` or Ollama `nomic-embed-text`
+- **React Flow** (`@xyflow/react`) — knowledge graph visualization
+- **rss-parser**, **cheerio**, **@mozilla/readability** — content extraction
 
-## What I Would Improve Next
+---
 
-- Delete/archive sources from the library UI
-- Deploy to Railway or Fly.io with a persistent volume for SQLite
-- Implement real Slack OAuth with `@slack/bolt`
-- Add duplicate URL detection before ingesting
-- Streaming responses for brief generation
+## Notes
 
-## What I Did Not Build and Why
-
-- **Real-time monitoring / n8n automation** — out of scope per PRD; future architecture idea
-- **Full-text enterprise portal** — PRD explicitly says don't build
-- **Multi-user auth** — not required for MVP, adds significant complexity
-
-## How I Used AI Agents
-
-Built entirely with Claude Code (claude.ai/code), which read the PRD, ARCHITECTURE.md, and TASKS.md then scaffolded and implemented all phases end-to-end. AI also diagnosed and fixed issues during testing (RSS parsing, brief generation fallbacks, provider routing).
+- The SQLite database lives at `data/research.db` and persists between restarts
+- Chrome must be installed for JavaScript-rendered pages (openai.com, etc.) — the app falls back to plain fetch for regular sites
+- Embeddings are generated on ingest and used for semantic search in `/ask` — if no embedding provider is configured, search falls back to keyword matching
+- Brief generation uses a two-step extract-then-analyze prompt to minimize hallucination
