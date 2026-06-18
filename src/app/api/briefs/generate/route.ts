@@ -128,7 +128,7 @@ JSON FIELDS:
 - key_ideas: string[] — 3-5 items. Must be actual insights or findings, NOT rephrased title words. Each item should be a complete thought that adds information.
 - entities_topics: string[] — 3-5 specific product names, company names, people, or technical concepts from the article.
 - why_hunter_should_care: string — ONE specific strategic implication. Do NOT write generic statements like "it is important to track tech companies." Ask: what would a smart product strategist do differently after reading this? What pattern does this confirm or break? Name the actual insight.
-- opportunity_ideas: string[] — 2-3 concrete moves specific enough that someone could act on them. NOT "explore pricing models." YES: "Build for Meta Ray-Bans' price point — the AR market is bifurcating and cheap+social is winning."
+- opportunity_ideas: string[] — 2-3 concrete moves FOR Hunter and XPM Labs based on what this article reveals. These are NOT advice for the company in the article — they are moves Hunter should consider. NOT "explore pricing models." YES: "Build for Meta Ray-Bans' price point — the AR market is bifurcating and cheap+social is winning."
 - product_opportunity_score: number — 1-10, where 10 = directly actionable for an AI product company right now, 1 = interesting but no clear angle.
 - recommended_next_action: string — one specific action Hunter should take in the next 48 hours based on this article.
 
@@ -139,6 +139,8 @@ GOOD: "Snap's failure confirms the AR market is bifurcating: Meta wins consumer 
 EXAMPLE — bad vs good for opportunity_ideas:
 BAD: "Explore alternative pricing models for AR glasses"
 GOOD: "Target Meta Ray-Bans developers now — build AI overlay apps for $300 hardware before the platform matures and competition locks in"
+
+GROUNDING RULE: Use ONLY facts, names, products, and figures that appear in the article content below. Do NOT add details from your training knowledge. If the article does not mention a specific product, person, or number — do not include it.
 
 Article:
 Title: ${source.title}
