@@ -31,7 +31,7 @@ ${data.key_ideas.map((i) => `- ${i}`).join("\n")}
 ## Entities / Topics
 ${data.entities_topics.map((i) => `- ${i}`).join("\n")}
 
-## Why Hunter Should Care
+## Why It Matters
 ${data.why_hunter_should_care}
 
 ## Opportunity Ideas
@@ -127,35 +127,27 @@ export async function POST(req: NextRequest) {
 
     if (ai) {
       try {
-        const prompt = `You are a senior research analyst at XPM Labs, a product strategy firm building AI-native tools and agentic systems. Your reader is Hunter, a product strategist who tracks AI capability frontiers, agentic systems, competitive dynamics between tech companies, and patterns in what products win or lose at market entry.
+        const prompt = `You are a research analyst summarizing a news article for a technology professional who wants to stay current on AI, tech, and the broader industry.
 
-YOUR TASK HAS TWO STEPS. Fill the JSON in this exact order:
+YOUR TASK HAS TWO STEPS:
 
-STEP 1 — Fill "_grounding" first by reading the article and copying verbatim:
-  - "numbers": every specific figure, statistic, date, or financial amount that appears in the article
-  - "names": every product name, company name, person name, and technology that appears in the article
+STEP 1 — Fill "_grounding" by reading the article and listing verbatim:
+  - "numbers": every specific figure, statistic, date, or financial amount mentioned
+  - "names": every product, company, person, and technology named in the article
 
-STEP 2 — Fill all remaining fields using ONLY what you listed in _grounding. Do not introduce any name, number, or product that is not in _grounding.
+STEP 2 — Fill all remaining fields using ONLY what is in _grounding. Do not add any name, number, or product not found in the article.
 
-JSON FIELDS (fill in this order):
+JSON FIELDS:
 "_grounding": { "numbers": string[], "names": string[] }
-"summary": 2-3 sentences using specific figures from _grounding.numbers and names from _grounding.names
-"key_ideas": 3-5 complete insights from the article — not rephrased title words, actual findings with specifics
-"entities_topics": 3-5 items chosen from _grounding.names only
-"why_hunter_should_care": ONE specific strategic implication for Hunter. Not "important to track companies." Name the actual insight: what would a smart product strategist do differently after reading this?
-"opportunity_ideas": 2-3 moves FOR Hunter and XPM Labs — not advice for the company in the article. Concrete enough to act on.
-"product_opportunity_score": 1-10 — how directly actionable is this for an AI product company right now?
-"recommended_next_action": one specific thing Hunter should do in the next 48 hours
+"summary": 2-3 sentences — what happened, who is involved, and the single most important finding or number
+"key_ideas": 4-5 specific insights that include actual numbers and names from the article. Not generic observations — concrete findings a reader would want to know.
+"entities_topics": 3-5 names from _grounding.names
+"why_hunter_should_care": what does this development mean for the tech and AI industry? What trend does it confirm or challenge? Be specific — one clear insight, not a generic statement.
+"opportunity_ideas": 2-3 concrete areas, questions, or shifts worth watching based on what this article reveals
+"product_opportunity_score": 1-10 — how significant is this story for someone following AI and tech right now?
+"recommended_next_action": one specific follow-up a reader should take to learn more or act on this story
 
-EXAMPLE — bad vs good for why_hunter_should_care:
-BAD: "It is important to track the performance of tech companies and their product launches."
-GOOD: "Snap's failure confirms the AR market is bifurcating: Meta wins consumer with cheap+social, Apple owns premium+enterprise. Any product strategy that tries to price between them will fail the same way Specs is failing."
-
-EXAMPLE — bad vs good for opportunity_ideas:
-BAD: "Explore alternative pricing models for AR glasses"
-GOOD: "Target Meta Ray-Bans developers now — build AI overlay apps for $300 hardware before the platform matures and competition locks in"
-
-Return ONLY a valid JSON object. No markdown, no code fences, no explanation.
+Return ONLY valid JSON. No markdown, no code fences, no explanation.
 
 Article:
 Title: ${source.title}

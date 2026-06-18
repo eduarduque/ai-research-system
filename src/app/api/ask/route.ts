@@ -88,9 +88,7 @@ export async function POST(req: NextRequest) {
 
     if (ai) {
       try {
-        const prompt = `You are a senior research analyst at XPM Labs, a product strategy firm building AI-native tools and agentic systems. Your reader is Hunter, a product strategist focused on AI capability frontiers, agentic systems, and competitive dynamics between major tech companies.
-
-Answer the question below using ONLY the provided research sources. Be specific — cite actual numbers, names, and findings from the sources. Do not give generic analysis.
+        const prompt = `You are a research analyst helping a technology professional find answers across their saved articles. Answer the question below using ONLY the provided research sources. Be specific — cite actual numbers, names, and findings from the sources. Do not give generic analysis.
 
 QUESTION: ${question}
 
