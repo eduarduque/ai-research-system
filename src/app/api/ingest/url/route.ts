@@ -5,6 +5,10 @@ import { JSDOM } from "jsdom";
 import { v4 as uuidv4 } from "uuid";
 import { insertSource, getSourceById, updateSourceEmbedding } from "@/lib/db";
 import { embedText } from "@/lib/embeddings";
+import { scrapeWithBrowser } from "@/lib/browser-scrape";
+
+// Pages with less than this many characters are considered JS-rendered and get a browser fallback
+const THIN_CONTENT_THRESHOLD = 500;
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,6 +44,17 @@ export async function POST(req: NextRequest) {
       if (article?.textContent) content = article.textContent.trim();
     } catch {
       // fall through to cheerio-extracted content
+    }
+
+    // If content is thin, the page is probably JavaScript-rendered — try a real browser
+    if (content.length < THIN_CONTENT_THRESHOLD) {
+      console.log(`Thin content (${content.length} chars) from ${url} — trying browser fallback`);
+      const browserResult = await scrapeWithBrowser(url);
+      if (browserResult) {
+        if (browserResult.title) title = browserResult.title;
+        content = browserResult.content;
+        console.log(`Browser scrape got ${content.length} chars`);
+      }
     }
 
     if (!content || content.length < 50) {
