@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## [Unreleased]
+
+### Added
+
+- MCP server (`src/mcp/server.ts`, `npm run mcp`) exposing `ingest_url`, `ask_research`, `generate_brief`, `list_sources`, and `get_research_graph` as tools for Claude Desktop / Claude Code
+- Project-scoped `.mcp.json` so the MCP tools are picked up automatically when this project is opened in Claude Code
+- Real Slack Events endpoint (`src/app/api/slack/events/route.ts`), replacing the earlier stub
+- `src/lib/ask.ts`, `src/lib/briefs.ts`, `src/lib/graph.ts`, `src/lib/ingest.ts` — core engine logic extracted out of the API route handlers so the MCP server and the web app call the same code instead of duplicating it
+- README screenshots and environment variable reference table
+
+### Changed
+
+- Brief-generation prompt rewritten (extract-then-organize, entity validation, grounding rule) to reduce hallucination
+- Groq and Ollama added as free alternatives to OpenAI
+
 ## [1.0.0] — 2026-06-02
 
 ### Added

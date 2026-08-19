@@ -16,7 +16,7 @@ export type Brief = {
   opportunity_ideas: string | null;
   product_opportunity_score: number | null;
   recommended_next_action: string | null;
-  why_hunter_should_care: string | null;
+  why_it_matters: string | null;
   created_at: string;
 };
 

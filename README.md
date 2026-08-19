@@ -4,6 +4,11 @@ A local research tool that ingests articles and RSS feeds, generates AI-powered 
 
 Works entirely on your machine. No cloud database, no subscription, no account required — just paste a URL, get a brief.
 
+<p align="center">
+  <img src="public/screenshots/dashboard.jpg" width="49%" alt="Dashboard" />
+  <img src="public/screenshots/knowledge-graph.jpg" width="49%" alt="Knowledge graph" />
+</p>
+
 ---
 
 ## What It Does
@@ -120,6 +125,30 @@ The app still works — URL ingestion, RSS, library, graph all function normally
 
 ---
 
+## MCP Server
+
+The app's core capabilities are also exposed as an [MCP](https://modelcontextprotocol.io) server, so Claude Desktop, Claude Code, or any other MCP client can call them directly as tools instead of going through the web UI.
+
+**Tools exposed:**
+
+| Tool | Description |
+|---|---|
+| `ingest_url` | Fetch a URL, extract readable content, save it as a source, embed it |
+| `ask_research` | RAG question-answering over all saved research |
+| `generate_brief` | Generate (or fetch) a structured brief for a source |
+| `list_sources` | List all saved sources |
+| `get_research_graph` | Get the topic/opportunity knowledge graph |
+
+**Run it standalone:**
+
+```bash
+npm run mcp
+```
+
+**Use it from Claude Code / Claude Desktop:** a project-scoped `.mcp.json` is already checked in, pointing at `npx tsx src/mcp/server.ts`. Open this project directory in Claude Code and the five tools above are available automatically — no extra config needed. For Claude Desktop, add the same `command`/`args` from `.mcp.json` to its MCP server settings.
+
+The MCP server shares the same SQLite database, AI provider config, and ingestion/RAG/brief logic as the web app (`src/lib/ingest.ts`, `src/lib/ask.ts`, `src/lib/briefs.ts`, `src/lib/graph.ts`) — it's a second interface onto the same engine, not a separate implementation.
+
 ## Pages
 
 | Route | What it does |
@@ -149,6 +178,7 @@ The app still works — URL ingestion, RSS, library, graph all function normally
 | POST | `/api/ask` | RAG question answering |
 | GET | `/api/graph` | Graph nodes and edges |
 | POST | `/api/slack/research` | Slack stub endpoint |
+| POST | `/api/slack/events` | Slack Events API webhook |
 
 ---
 

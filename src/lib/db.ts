@@ -10,7 +10,6 @@ if (!fs.existsSync(DATA_DIR)) {
 const DB_PATH = path.join(DATA_DIR, "research.db");
 
 declare global {
-  // eslint-disable-next-line no-var
   var _db: Database.Database | undefined;
 }
 
@@ -44,7 +43,7 @@ function initSchema(db: Database.Database) {
       opportunity_ideas TEXT,
       product_opportunity_score INTEGER,
       recommended_next_action TEXT,
-      why_hunter_should_care TEXT,
+      why_it_matters TEXT,
       created_at TEXT NOT NULL,
       FOREIGN KEY (source_id) REFERENCES sources(id)
     );
@@ -61,6 +60,15 @@ function initSchema(db: Database.Database) {
   const cols = db.prepare("PRAGMA table_info(sources)").all() as { name: string }[];
   if (!cols.find((c) => c.name === "embedding")) {
     db.exec("ALTER TABLE sources ADD COLUMN embedding TEXT");
+  }
+
+  // Migrate existing databases from the old why_hunter_should_care column name
+  const briefCols = db.prepare("PRAGMA table_info(briefs)").all() as { name: string }[];
+  if (
+    briefCols.find((c) => c.name === "why_hunter_should_care") &&
+    !briefCols.find((c) => c.name === "why_it_matters")
+  ) {
+    db.exec("ALTER TABLE briefs RENAME COLUMN why_hunter_should_care TO why_it_matters");
   }
 
   const row = db
@@ -157,7 +165,7 @@ export function insertBrief(brief: {
   opportunity_ideas: string;
   product_opportunity_score: number;
   recommended_next_action: string;
-  why_hunter_should_care: string;
+  why_it_matters: string;
   created_at: string;
 }) {
   getDb()
@@ -165,11 +173,11 @@ export function insertBrief(brief: {
       `INSERT INTO briefs
         (id, source_id, markdown, summary, key_ideas, entities_topics,
          opportunity_ideas, product_opportunity_score, recommended_next_action,
-         why_hunter_should_care, created_at)
+         why_it_matters, created_at)
        VALUES
         (@id, @source_id, @markdown, @summary, @key_ideas, @entities_topics,
          @opportunity_ideas, @product_opportunity_score, @recommended_next_action,
-         @why_hunter_should_care, @created_at)`
+         @why_it_matters, @created_at)`
     )
     .run(brief);
 }

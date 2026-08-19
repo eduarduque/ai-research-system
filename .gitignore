@@ -43,3 +43,5 @@ next-env.d.ts
 
 # sqlite database
 /data/research.db
+/data/research.db-shm
+/data/research.db-wal

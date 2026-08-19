@@ -3,19 +3,6 @@ import { notFound } from "next/navigation";
 import { getBriefById } from "@/lib/db";
 import type { Brief } from "@/lib/types";
 
-function renderMarkdown(md: string): string {
-  return md
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^\*\*(.+)\*\*$/gm, '<strong>$1</strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^(?!<[hul])(.+)$/gm, '$1')
-    .replace(/\n/g, '<br>');
-}
-
 type Props = { params: Promise<{ id: string }> };
 
 export default async function BriefDetailPage({ params }: Props) {
@@ -72,11 +59,11 @@ export default async function BriefDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Why Hunter Should Care */}
-        {brief.why_hunter_should_care && (
+        {/* Why It Matters */}
+        {brief.why_it_matters && (
           <div className="bg-slate-800 rounded-lg p-5 border border-sky-800/40">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-sky-500 mb-2">Why This Matters</h2>
-            <p className="text-sm text-slate-200 leading-relaxed">{brief.why_hunter_should_care}</p>
+            <p className="text-sm text-slate-200 leading-relaxed">{brief.why_it_matters}</p>
           </div>
         )}
 
