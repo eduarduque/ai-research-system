@@ -188,6 +188,8 @@ npm run mcp
 
 The MCP server shares the same SQLite database, AI provider config, and ingestion/RAG/brief logic as the web app (`src/lib/ingest.ts`, `src/lib/ask.ts`, `src/lib/briefs.ts`, `src/lib/graph.ts`) — it's a second interface onto the same engine, not a separate implementation.
 
+---
+
 ## Pages
 
 | Route | Description |
