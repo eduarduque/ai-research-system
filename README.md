@@ -1,8 +1,8 @@
 # AI Research Intelligence System
 
-A local research tool that ingests articles and RSS feeds, generates AI-powered research briefs, lets you ask questions across your saved research, and visualizes topic connections in a knowledge graph.
+A full-stack research pipeline that ingests articles and RSS feeds, generates structured AI briefs, answers questions using RAG with vector search, and maps topic relationships in a knowledge graph.
 
-Works entirely on your machine. No cloud database, no subscription, no account required — just paste a URL, get a brief.
+Built with Next.js 16, SQLite, and a provider-agnostic LLM layer (OpenAI, Groq, or Ollama).
 
 <p align="center">
   <img src="public/screenshots/dashboard.jpg" width="49%" alt="Dashboard" />
@@ -11,102 +11,141 @@ Works entirely on your machine. No cloud database, no subscription, no account r
 
 ---
 
-## What It Does
+## How It Works
 
-- **Ingest any URL** — paste an article link, the app fetches and extracts the full text (handles JavaScript-rendered pages automatically using your local Chrome)
-- **RSS feeds** — browse Hacker News, TechCrunch AI, VentureBeat AI, The Verge AI, MIT Technology Review — one click to save any item
-- **AI Research Briefs** — structured analysis: summary, key ideas, entities, why it matters, opportunity areas, relevance score, next action
-- **Research Library** — all saved articles and their briefs in one place
-- **Ask questions** — type a question, get an answer citing your saved articles by source
-- **Knowledge Graph** — visual map of how your sources connect through shared topics
+### Ingestion Pipeline
+
+```
+URL / RSS item
+      │
+      ▼
+ Scraper layer
+ ├── Puppeteer (JS-rendered pages)
+ └── Cheerio + Readability (static pages)
+      │
+      ▼
+ Text extraction → stored in SQLite
+      │
+      ├──► Embedding model → vector stored alongside content
+      │         (OpenAI text-embedding-3-small  OR  Ollama nomic-embed-text)
+      │
+      └──► Brief generator (on demand)
+               Two-step LLM prompt: extract entities → analyze significance
+               Output: summary, key ideas, entities, opportunity score, next action
+```
+
+### RAG Search Pipeline
+
+```
+User question
+      │
+      ▼
+ Embed query  ──────────────────────────────────────────────────────────────┐
+      │                                                                      │
+      ▼                                                                      │
+ Cosine similarity vs all stored embeddings  ←── SQLite (content + vectors) ┘
+      │
+      ▼
+ Top-5 retrieval (falls back to keyword scoring if no embeddings)
+      │
+      ▼
+ LLM synthesis prompt with retrieved context
+      │
+      ▼
+ Cited answer  →  "## Answer … [1] [2]  ## Sources Used …"
+```
+
+### Knowledge Graph
+
+Sources, topics, and entities extracted from briefs become graph nodes. Edges connect sources to their topics, topics to entities, and topics to opportunities — rendered with React Flow for visual exploration.
 
 ---
 
-## Prerequisites
+## Key Engineering Decisions
 
-- [Node.js 20+](https://nodejs.org/) — required
-- Google Chrome — required for scraping JavaScript-rendered pages (most computers already have it)
-- An AI provider — pick one from the options below (at least one is needed for real briefs)
+**Provider-agnostic LLM layer** — OpenAI, Groq (Llama 3.1), and Ollama all share the OpenAI SDK's `/v1/chat/completions` and `/v1/embeddings` interfaces. Switching providers is one env variable change with zero code changes.
+
+**Cosine similarity in-process** — Embeddings are stored as JSON blobs in SQLite and similarity is computed in TypeScript. No vector database needed for this scale; the implementation is transparent and portable.
+
+**Graceful degradation** — If no embedding provider is configured, RAG falls back to keyword scoring. If no LLM is configured, ingestion and the graph still work. Each layer is independent.
+
+**Two-step brief generation** — Content is first extracted (structured fields), then analyzed (why it matters, opportunity score). Separating extraction from reasoning reduces hallucination and makes outputs consistent.
+
+---
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16, App Router, TypeScript |
+| Database | SQLite via `better-sqlite3` |
+| Scraping | Puppeteer Core + Cheerio + @mozilla/readability |
+| Embeddings | OpenAI `text-embedding-3-small` / Ollama `nomic-embed-text` |
+| LLM | OpenAI SDK (shared interface for OpenAI, Groq, Ollama) |
+| Graph UI | React Flow (`@xyflow/react`) |
+| Content parsing | `rss-parser`, `cheerio`, `@mozilla/readability` |
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Clone and install
 git clone https://github.com/eduarduque/ai-research-system.git
 cd ai-research-system
 npm install
-
-# 2. Set up your AI provider (see section below)
 cp .env.example .env.local
-# Edit .env.local and uncomment one provider
-
-# 3. Run
+# Configure one AI provider (see below)
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Five RSS feeds are seeded automatically on first run.
+Open [http://localhost:3000](http://localhost:3000). Five RSS feeds are pre-seeded on first run.
 
 ---
 
-## Choosing an AI Provider
+## AI Provider Setup
 
-Open `.env.local` and uncomment **one** of these options. The app uses whichever is configured first.
+Open `.env.local` and configure **one** provider. The app uses whichever key is present first.
 
-### Option A — Groq (recommended: free, fast, 2-minute setup)
+### Groq — free, no credit card, 2-minute setup (recommended for trying it out)
 
-No credit card. No download. Sign up at [console.groq.com](https://console.groq.com), create an API key, paste it in `.env.local`:
+Sign up at [console.groq.com](https://console.groq.com), create a key:
 
 ```env
 GROQ_API_KEY=gsk_...
 ```
 
-That's it. Uses Llama 3.1 8B with a generous free tier.
+Uses Llama 3.1 8B. Generous free tier.
 
 ---
 
-### Option B — Ollama (local, free forever, works offline)
-
-Runs a language model on your own machine. One-time setup:
-
-1. Install Ollama from [ollama.com/download](https://ollama.com/download)
-2. Open a terminal and pull the models:
+### Ollama — fully local, works offline
 
 ```bash
-# Chat model — best instruction following on a laptop (4.7 GB)
-ollama pull qwen2.5:7b
-
-# Embedding model — powers semantic search (274 MB)
-ollama pull nomic-embed-text
+# Install from ollama.com/download, then:
+ollama pull qwen2.5:7b          # chat model (4.7 GB)
+ollama pull nomic-embed-text    # embedding model (274 MB)
 ```
-
-3. Add to `.env.local`:
 
 ```env
 OLLAMA_MODEL=qwen2.5:7b
 OLLAMA_EMBED_MODEL=nomic-embed-text
 ```
 
-Ollama starts automatically at `http://localhost:11434`. No API key needed.
-
-**Already have a different model?** Any instruction-tuned model works. Just set `OLLAMA_MODEL=your-model-name`.
-
 ---
 
-### Option C — OpenAI (paid, highest quality)
+### OpenAI
 
 ```env
 OPENAI_API_KEY=sk-proj-...
 ```
 
-Get a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys). Uses `gpt-4o-mini` by default.
+Uses `gpt-4o-mini` by default. Also enables `text-embedding-3-small` for semantic search.
 
 ---
 
-### No AI provider
+### No provider
 
-The app still works — URL ingestion, RSS, library, graph all function normally. Brief generation falls back to a basic template without real analysis.
+The app still works without an LLM — ingestion, RSS, library, and the knowledge graph all function. Brief generation falls back to a template; RAG falls back to keyword matching.
 
 ---
 
@@ -114,14 +153,14 @@ The app still works — URL ingestion, RSS, library, graph all function normally
 
 | Variable | Default | Description |
 |---|---|---|
-| `GROQ_API_KEY` | — | Groq API key (free tier available) |
-| `GROQ_MODEL` | `llama-3.1-8b-instant` | Groq model name |
+| `GROQ_API_KEY` | — | Groq API key |
+| `GROQ_MODEL` | `llama-3.1-8b-instant` | Groq model |
 | `OPENAI_API_KEY` | — | OpenAI API key |
-| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model name |
-| `OLLAMA_MODEL` | — | Ollama model name, e.g. `qwen2.5:7b` |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model |
+| `OLLAMA_MODEL` | — | Ollama model (e.g. `qwen2.5:7b`) |
 | `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Ollama embedding model |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `DATA_DIR` | `./data` | Directory for the SQLite database |
+| `DATA_DIR` | `./data` | SQLite database directory |
 
 ---
 
@@ -151,15 +190,15 @@ The MCP server shares the same SQLite database, AI provider config, and ingestio
 
 ## Pages
 
-| Route | What it does |
+| Route | Description |
 |---|---|
 | `/` | Dashboard — stats and quick actions |
-| `/ingest` | Paste any URL to save and extract content |
+| `/ingest` | Paste any URL to extract and save |
 | `/rss` | Browse RSS feeds and save items |
 | `/library` | All saved sources with brief generation |
-| `/briefs/[id]` | Full brief for a source |
-| `/ask` | Ask questions across your saved research |
-| `/graph` | Knowledge graph of sources and topics |
+| `/briefs/[id]` | Full structured brief for a source |
+| `/ask` | RAG question answering over saved research |
+| `/graph` | Knowledge graph of sources, topics, entities |
 | `/slack` | Slack integration stub and API docs |
 
 ---
@@ -182,21 +221,9 @@ The MCP server shares the same SQLite database, AI provider config, and ingestio
 
 ---
 
-## Stack
-
-- **Next.js 16** — App Router, TypeScript, Tailwind CSS
-- **SQLite** via `better-sqlite3` — local database, auto-created on first run
-- **Puppeteer Core** — headless Chrome for JavaScript-rendered pages
-- **OpenAI SDK** — used for all three AI providers (OpenAI, Groq, Ollama share the same API format)
-- **Vector embeddings** — semantic search via OpenAI `text-embedding-3-small` or Ollama `nomic-embed-text`
-- **React Flow** (`@xyflow/react`) — knowledge graph visualization
-- **rss-parser**, **cheerio**, **@mozilla/readability** — content extraction
-
----
-
 ## Notes
 
-- The SQLite database lives at `data/research.db` and persists between restarts
-- Chrome must be installed for JavaScript-rendered pages (openai.com, etc.) — the app falls back to plain fetch for regular sites
-- Embeddings are generated on ingest and used for semantic search in `/ask` — if no embedding provider is configured, search falls back to keyword matching
-- Brief generation uses a two-step extract-then-analyze prompt to minimize hallucination
+- SQLite database auto-creates at `data/research.db` on first run
+- Chrome must be installed for JS-rendered pages; the app falls back to plain fetch for static sites
+- Embeddings are generated on ingest; if no embedding provider is set, `/ask` uses keyword matching
+- Different embedding providers produce different vector dimensions — the cosine similarity function returns 0 for mismatched dimensions rather than producing incorrect results
