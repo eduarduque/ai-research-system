@@ -4,7 +4,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import getDb, { resetDb, getSourceByUrl, getBriefBySourceId, deleteSource, getAllChunks } from "@/lib/db";
-import { saveSource, htmlToText, extractArticle } from "@/lib/ingest";
+import { saveSource, htmlToText, extractArticle, trimTrailingCitations } from "@/lib/ingest";
 import { generateBrief } from "@/lib/briefs";
 import { answerQuestion } from "@/lib/ask";
 import { buildGraph } from "@/lib/graph";
@@ -78,13 +78,14 @@ describe("buildGraph", () => {
        VALUES (?, ?, '', ?, ?, 0, ?)`
     );
     ins.run("b1", a.source.id, JSON.stringify(["Anthropic", "OpenAI"]), JSON.stringify(["Agent tooling"]), new Date().toISOString());
-    ins.run("b2", b.source.id, JSON.stringify(["anthropic", "Google"]), JSON.stringify([]), new Date().toISOString());
+    ins.run("b2", b.source.id, JSON.stringify(["anthropic", "Google", "Agent tooling (ATL)"]), JSON.stringify([]), new Date().toISOString());
 
     const g = buildGraph();
     const topics = g.nodes.filter((n) => n.type === "topic").map((n) => n.id);
     expect(topics.filter((t) => t === "topic:anthropic")).toHaveLength(1);
     expect(g.edges.filter((e) => e.target === "topic:anthropic")).toHaveLength(2);
     expect(new Set(g.edges.map((e) => e.id)).size).toBe(g.edges.length);
+    expect(g.nodes.find((n) => n.id === "topic:agent-tooling")?.label).toBe("Agent tooling");
     expect(g.nodes.find((n) => n.id === `src:${a.source.id}`)?.href).toBe("/briefs/b1");
   });
 });
@@ -146,5 +147,26 @@ describe("HTML extraction", () => {
     const r = extractArticle(html, "https://ex.com/x");
     expect(r.title).toBe("Real Title");
     expect(r.content).toContain("Meaningful paragraph");
+  });
+});
+
+describe("back-matter cleanup", () => {
+  it("drops reference lists from a real Wikipedia extraction and keeps the article", () => {
+    const raw = fs.readFileSync(path.join(__dirname, "fixtures/wiki-rag-content.txt"), "utf8");
+    const cleaned = trimTrailingCitations(raw);
+    expect(cleaned.length).toBeLessThan(raw.length * 0.9);
+    expect(cleaned).toContain("Retrieval-augmented generation");
+    expect(cleaned.split("\n").slice(-5).join("\n")).not.toMatch(/Retrieved \d{4}-\d{2}-\d{2}/);
+  });
+
+  it("leaves text without a citation block untouched", () => {
+    const t = "Paragraph one is long enough to be real content here.\n\nParagraph two also has real content in it.";
+    expect(trimTrailingCitations(t)).toBe(t);
+  });
+
+  it("removes reference lists at the DOM level", () => {
+    const html = `<html><body><article>${"<p>Body text about vector databases and indexes.</p>".repeat(10)}
+      <ol class="references"><li>Smith. Retrieved 2024-01-01.</li></ol></article></body></html>`;
+    expect(extractArticle(html, "https://ex.com").content).not.toContain("Smith");
   });
 });

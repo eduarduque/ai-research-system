@@ -70,6 +70,33 @@ export function stripReferenceMarkers(text: string): string {
     .replace(/[ \t]+([.,;:])/g, "$1");
 }
 
+// Reference lists, footnotes and navigation boxes: not article content, and they
+// dominate long pages (a Wikipedia article can be 40% citations).
+const BACK_MATTER_SELECTORS = [
+  ".reflist", ".references", ".mw-references-wrap", "ol.references", ".refbegin",
+  ".navbox", ".vertical-navbox", ".catlinks", ".sistersitebox", ".mw-editsection",
+  "sup.reference", ".footnotes", "[role='doc-endnotes']", "[role='doc-bibliography']",
+].join(",");
+
+const CITATION_LINE = /^(\s*[↑^]|.*\bRetrieved (on )?(\d{1,2} )?[A-Z]?[a-z]* ?\d{1,2},? \d{4}|.*\bRetrieved \d{4}-\d{2}-\d{2}|.*\b(arXiv:|doi:|ISBN|ISSN)\s*\S+)/;
+
+/** Drop a trailing block of citation-like lines that survived DOM cleanup. */
+export function trimTrailingCitations(text: string): string {
+  const lines = text.split("\n");
+  let cut = lines.length;
+  let citations = 0;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim();
+    if (!line || line.length < 40 || CITATION_LINE.test(line)) {
+      if (line && CITATION_LINE.test(line)) citations++;
+      cut = i;
+    } else {
+      break;
+    }
+  }
+  return citations >= 3 ? lines.slice(0, cut).join("\n").trim() : text;
+}
+
 export function extractArticle(html: string, url: string): { title: string; content: string } {
   const $ = cheerio.load(html);
   let title = $("meta[property='og:title']").attr("content")?.trim() || $("title").first().text().trim() || url;
@@ -77,7 +104,9 @@ export function extractArticle(html: string, url: string): { title: string; cont
   let content = $("body").text().replace(/\s+/g, " ").trim();
   try {
     // Readability can throw on unusual markup — fall back to raw body text.
-    const article = new Readability(new JSDOM(html, { url }).window.document).parse();
+    const doc = new JSDOM(html, { url }).window.document;
+    doc.querySelectorAll(BACK_MATTER_SELECTORS).forEach((el) => el.remove());
+    const article = new Readability(doc).parse();
     if (article?.title) title = article.title.trim();
     if (article?.textContent && article.textContent.trim().length > 200) {
       content = article.textContent.replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n\n").trim();
@@ -85,7 +114,7 @@ export function extractArticle(html: string, url: string): { title: string; cont
   } catch {
     /* keep cheerio text */
   }
-  return { title, content };
+  return { title, content: trimTrailingCitations(content) };
 }
 
 export async function ingestUrl(rawUrl: string): Promise<SaveResult> {

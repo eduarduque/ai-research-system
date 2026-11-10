@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeBriefData, extractJSON, extractiveBrief } from "@/lib/briefs";
+import { normalizeBriefData, extractJSON, extractiveBrief, extractEntities, isJsonModeFailure } from "@/lib/briefs";
 
 const article =
   "OpenAI announced GPT-5 on Tuesday. Microsoft will integrate it into Copilot for 400 million users. " +
@@ -71,5 +71,28 @@ describe("extractiveBrief (no-AI fallback)", () => {
     for (const idea of b.key_ideas) expect(article).toContain(idea);
     for (const e of b.entities_topics) expect(article).toContain(e);
     expect(b.key_ideas.some((k) => /\d/.test(k))).toBe(true);
+  });
+});
+
+describe("isJsonModeFailure", () => {
+  it("recognizes Groq's json_validate_failed and nothing else", () => {
+    expect(isJsonModeFailure({ status: 400, code: "json_validate_failed" })).toBe(true);
+    expect(isJsonModeFailure({ status: 400, message: "400 Failed to generate JSON. Please adjust your prompt." })).toBe(true);
+    expect(isJsonModeFailure({ status: 429, message: "Rate limit" })).toBe(false);
+    expect(isJsonModeFailure({ status: 400, message: "invalid model" })).toBe(false);
+  });
+});
+
+describe("extractEntities (fallback heuristic)", () => {
+  it("ignores sentence-initial words, months and reference boilerplate", () => {
+    const text =
+      "There is growth. Retrieved 3 March 2024. In the report, Anthropic and Google DeepMind compete. " +
+      "Analysts said Anthropic grew while Google DeepMind hired. March was busy for Anthropic.";
+    const e = extractEntities(text);
+    expect(e).toContain("Anthropic");
+    expect(e).toContain("Google DeepMind");
+    expect(e).not.toContain("There");
+    expect(e).not.toContain("March");
+    expect(e).not.toContain("Retrieved");
   });
 });

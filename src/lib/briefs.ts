@@ -83,6 +83,38 @@ function splitSentences(text: string): string[] {
   return (text.replace(/\s+/g, " ").match(/[^.!?]+[.!?]+/g) ?? [text]).map((s) => s.trim()).filter((s) => s.length > 30);
 }
 
+const NOT_ENTITIES = new Set(
+  ("the a an in on at it its this that these those there here but and or for of to we he she they i you " +
+    "if when while after before since because however although also as by with from into about many most some " +
+    "such other another each every both one two three first second new retrieved archived accessed see " +
+    "january february march april may june july august september october november december " +
+    "monday tuesday wednesday thursday friday saturday sunday license references notes").split(" ")
+);
+
+/**
+ * Heuristic named-entity extraction for the no-AI fallback: capitalized phrases
+ * that appear mid-sentence (so ordinary sentence-initial words don't count),
+ * ranked by frequency. Phrases contained in a more frequent longer phrase are merged.
+ */
+export function extractEntities(content: string, limit = 5): string[] {
+  const counts = new Map<string, number>();
+  for (const m of content.matchAll(/(?<=[a-z0-9,;:)] )([A-Z][a-zA-Z0-9]*(?:[ -][A-Z][a-zA-Z0-9]*){0,3})/g)) {
+    const words = m[1].split(/[ -]/);
+    while (words.length && NOT_ENTITIES.has(words[0].toLowerCase())) words.shift();
+    const name = words.join(" ");
+    if (name.length < 2 || NOT_ENTITIES.has(name.toLowerCase())) continue;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  const ranked = [...counts.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1] || b[0].length - a[0].length);
+  const out: string[] = [];
+  for (const [name] of ranked) {
+    if (out.some((o) => o.includes(name) || name.includes(o))) continue;
+    out.push(name);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 /**
  * Non-AI brief built only from the article's own sentences. Everything in it is
  * verbatim from the source — less insightful than an LLM brief, but never wrong.
@@ -92,13 +124,7 @@ export function extractiveBrief(title: string, content: string): BriefData {
   const withNumbers = sentences.filter((s) => /\d/.test(s));
   const keyIdeas = [...new Set([...withNumbers, ...sentences.slice(1)])].slice(0, 4);
 
-  const counts = new Map<string, number>();
-  for (const m of content.matchAll(/\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\b/g)) {
-    const name = m[1];
-    if (/^(The|A|An|In|On|It|This|That|But|And|For|We|He|She|They|I)$/.test(name)) continue;
-    counts.set(name, (counts.get(name) ?? 0) + 1);
-  }
-  const entities = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n]) => n);
+  const entities = extractEntities(content);
 
   return {
     summary: sentences.slice(0, 2).join(" ") || title,
@@ -169,15 +195,38 @@ export async function generateBriefData(title: string, url: string, content: str
   if (!ai) throw new Error("No AI provider configured");
   // 6000 chars fits most local-model context windows while giving plenty of article.
   const truncated = content.slice(0, 6000);
-  const completion = await ai.client.chat.completions.create({
-    model: ai.model,
-    messages: [{ role: "user", content: buildBriefPrompt(title, url, truncated) }],
-    temperature: 0.3,
-    ...reasoningOptions(ai.model),
-    // Ollama doesn't guarantee response_format support across all models.
-    ...(ai.provider !== "ollama" && { response_format: { type: "json_object" as const } }),
-  });
+  const request = (jsonMode: boolean) =>
+    ai.client.chat.completions.create({
+      model: ai.model,
+      messages: [{ role: "user", content: buildBriefPrompt(title, url, truncated) }],
+      temperature: 0.3,
+      ...reasoningOptions(ai.model),
+      ...(jsonMode && { response_format: { type: "json_object" as const } }),
+    });
+
+  // Ollama doesn't guarantee response_format support across all models.
+  const jsonMode = ai.provider !== "ollama";
+  let completion;
+  try {
+    completion = await request(jsonMode);
+  } catch (err) {
+    // Strict JSON mode fails server-side when the model's output doesn't parse
+    // (Groq: 400 json_validate_failed). Retry once in free-text mode; extractJSON
+    // and the Zod schema still enforce the structure.
+    if (!jsonMode || !isJsonModeFailure(err)) throw err;
+    completion = await request(false);
+  }
   return normalizeBriefData(extractJSON(completion.choices[0].message.content || "{}"), truncated);
+}
+
+export function isJsonModeFailure(err: unknown): boolean {
+  const e = err as { status?: number; code?: string; error?: { code?: string }; message?: string };
+  return (
+    e?.status === 400 &&
+    (e.code === "json_validate_failed" ||
+      e.error?.code === "json_validate_failed" ||
+      /failed to generate json/i.test(e.message ?? ""))
+  );
 }
 
 /**
