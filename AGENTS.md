@@ -1,48 +1,42 @@
 # AGENTS.md
 
-This file describes how AI agents were used to build this project and how future agents should work within it.
+Guidance for AI coding agents (and humans) working in this repository. The project was built with Claude Code; see `docs/history/` for the original PRD and build log.
 
-## How This Project Was Built
+## Commands
 
-This MVP was built entirely with **Claude Code** (claude.ai/code), an agentic AI coding assistant. The agent:
+| Task | Command |
+|---|---|
+| Dev server | `npm run dev` |
+| Lint / typecheck | `npm run lint` · `npm run typecheck` |
+| Unit + integration tests | `npm test` (Vitest, in-memory SQLite, no network or AI keys needed) |
+| Retrieval eval (no LLM) | `npm run eval -- --retrieval-only` |
+| Full eval (needs a provider) | `npm run eval` |
+| MCP server | `npm run mcp` |
 
-1. Read `PRD.md`, `ARCHITECTURE.md`, and `TASKS.md` from the research pack
-2. Scaffolded the Next.js project and installed all dependencies
-3. Implemented all API routes, pages, database layer, and documentation
-4. Followed the TASKS.md build sequence (Phase 0 → Phase 8)
+Run `npm run lint && npm run typecheck && npm test` before committing. If you change retrieval, chunking, prompts or embeddings, run the eval and update `evals/RESULTS.md` with the new numbers — do not tune parameters without reporting the sweep.
 
-## Agent Instructions for Future Work
+## Layout
 
-If you are an AI agent continuing work on this project:
+- `src/lib/` — the engine. API routes, the MCP server and the Slack bot are thin wrappers around it; never duplicate engine logic in a caller.
+  - `ingest.ts` (`ingestUrl`, `saveSource` — the single write path for sources), `url.ts` (canonicalization + SSRF guard)
+  - `chunk.ts`, `indexing.ts`, `embeddings.ts`, `retrieval.ts` (pure ranking), `ask.ts` (answers + citation repair)
+  - `briefs.ts` (prompt, Zod schema, fallback), `graph.ts`, `discover.ts`, `db.ts` (schema, migrations, queries)
+- `src/proxy.ts` — optional access token + rate limiting (Next 16 renamed middleware to proxy)
+- `src/mcp/server.ts` — runs outside Next via `tsx`, so it uses relative imports, not `@/*`
+- `tests/` — Vitest; `evals/` — fixture corpus, questions and the eval runner
+- `docs/ARCHITECTURE.md` — design and trade-offs
 
-### Priorities (in order)
-1. Security — never expose secrets, never hardcode API keys
-2. Working features over architecture — a clean, running prototype beats a complex half-built system
-3. PRD requirements — see `PRD.md` for the feature checklist and scoring rubric
-4. Simplicity — do not add abstractions that aren't needed
+## Rules
 
-### Key Files
-- `src/lib/db.ts` — SQLite database connection and all CRUD helpers
-- `src/lib/ingest.ts`, `src/lib/ask.ts`, `src/lib/briefs.ts`, `src/lib/graph.ts` — core engine logic (scraping, RAG, brief generation, graph building). API routes and the MCP server both call these; do not duplicate this logic into either caller.
-- `src/lib/types.ts` — TypeScript types for Source, Brief, RssFeed, GraphNode, GraphEdge
-- `src/app/api/` — all API route handlers (thin wrappers around `src/lib/`)
-- `src/app/` — all Next.js pages
-- `src/mcp/server.ts` — MCP (Model Context Protocol) server exposing the same engine as tools over stdio; run with `npm run mcp`. Uses relative imports, not the `@/*` alias, since it runs outside the Next.js bundler via `tsx`.
-- `data/research.db` — SQLite database (auto-created, do not commit)
-- `.env.local` — secrets (gitignored, do not commit)
+- Security first: never commit secrets; keep the SSRF guard (`safeFetch`) on every server-side fetch of a user-supplied URL.
+- Native modules (`better-sqlite3`, `onnxruntime-node`, `@huggingface/transformers`, `puppeteer-core`) must stay in `serverExternalPackages`.
+- Schema changes go in `initSchema()` as idempotent migrations, with a test in `tests/engine.test.ts`.
+- `GraphView.tsx` must stay a client component (React Flow needs the DOM).
+- Keep `CHANGELOG.md` updated for user-visible changes.
+- This is Next.js 16: APIs differ from older versions. Read `node_modules/next/dist/docs/` before using an unfamiliar API.
 
-### Rules
-- Run `npm run dev` to start the dev server before testing UI changes
-- All API routes use the Next.js App Router `route.ts` convention
-- `better-sqlite3` is a native module — it must stay in `serverExternalPackages` in `next.config.ts`
-- The `GraphView.tsx` component must stay as `"use client"` — React Flow requires browser APIs
-- Keep `SETUP_LOG.md` and `CHANGELOG.md` updated after each meaningful change
-- Do not add Slack OAuth unless core features are fully working
+## Not built yet
 
-### What's Not Built Yet (Future Work)
-- Real Slack OAuth with `@slack/bolt`
-- Delete/archive from library UI
-- Duplicate URL detection on ingest
-- Deployment configuration (Vercel, Railway) — note SQLite won't persist on Vercel's serverless filesystem, so this needs a hosted DB swap (e.g. Turso) first
-- Remote/HTTP transport for the MCP server (currently stdio-only, local use)
-- Evals for the brief-generation/RAG pipeline
+- Remote (HTTP) transport for the MCP server
+- Multi-user accounts (the access token is single-tenant)
+- A hosted vector index (`sqlite-vec` / pgvector) for libraries beyond tens of thousands of chunks

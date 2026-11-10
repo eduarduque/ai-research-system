@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  retrieval-eval:
+    # LLM-free eval: indexes the fixture corpus with local embeddings and fails
+    # if hybrid retrieval regresses below the floor.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: .cache/models
+          key: models-${{ hashFiles('src/lib/embeddings.ts') }}
+      - run: npm ci
+      - run: npm run eval -- --retrieval-only
+        env:
+          EVAL_MIN_HYBRID_HIT1: "0.9"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retrieval-eval
+          path: evals/results/retrieval.json
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: ai-research-system:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
