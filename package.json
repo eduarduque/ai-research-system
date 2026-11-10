@@ -10,9 +10,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "mcp": "tsx src/mcp/server.ts"
+    "mcp": "tsx src/mcp/server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "@modelcontextprotocol/sdk": "^1.19.1",
     "@mozilla/readability": "^0.6.0",
     "@types/node-cron": "^3.0.11",
@@ -43,11 +46,15 @@
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   },
   "allowScripts": {
     "better-sqlite3@12.10.0": true,
     "esbuild@0.28.2": true,
     "unrs-resolver@1.12.2": true
+  },
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node@^4.40.0"
   }
 }
