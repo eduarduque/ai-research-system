@@ -40,22 +40,41 @@ function CustomNode({ data }: { data: { label: string; nodeType: string } }) {
 
 const nodeTypes: NodeTypes = { custom: CustomNode };
 
-// Layered layout: sources -> topics -> opportunities, left to right. Deterministic,
-// so the graph doesn't jump around between visits.
-const COLUMN: Record<GraphNode["type"], number> = { source: 0, topic: 1, entity: 1, opportunity: 2 };
+// Layered layout: sources -> topics -> opportunities, left to right. Each layer wraps
+// into several columns so a large library stays roughly as wide as it is tall, and
+// layers are vertically centred on each other. Deterministic: no jumping between visits.
+const LAYER: Record<GraphNode["type"], number> = { source: 0, topic: 1, entity: 1, opportunity: 2 };
+const COL_W = 190;
+const ROW_H = 78;
+const LAYER_GAP = 140;
 
 function toFlowNodes(nodes: GraphNode[]): Node[] {
-  const rowInColumn = [0, 0, 0];
-  return nodes.map((n) => {
-    const col = COLUMN[n.type] ?? 1;
-    const row = rowInColumn[col]++;
-    return {
-      id: n.id,
-      type: "custom",
-      position: { x: col * 320, y: row * 90 },
-      data: { label: n.label, nodeType: n.type, href: n.href },
-    };
+  const layers: GraphNode[][] = [[], [], []];
+  for (const n of nodes) layers[LAYER[n.type] ?? 1].push(n);
+
+  const maxRows = Math.max(6, Math.ceil(Math.sqrt(nodes.length * 1.5)));
+  const shapes = layers.map((l) => {
+    const cols = Math.max(1, Math.ceil(l.length / maxRows));
+    return { cols, rows: Math.ceil(l.length / cols) || 0 };
   });
+  const tallest = Math.max(...shapes.map((s) => s.rows));
+
+  const out: Node[] = [];
+  let x0 = 0;
+  layers.forEach((layer, li) => {
+    const { cols, rows } = shapes[li];
+    const yOffset = ((tallest - rows) * ROW_H) / 2;
+    layer.forEach((n, i) => {
+      out.push({
+        id: n.id,
+        type: "custom",
+        position: { x: x0 + Math.floor(i / rows) * COL_W, y: yOffset + (i % rows) * ROW_H },
+        data: { label: n.label, nodeType: n.type, href: n.href },
+      });
+    });
+    if (layer.length) x0 += cols * COL_W + LAYER_GAP;
+  });
+  return out;
 }
 
 function toFlowEdges(edges: GraphEdge[]): Edge[] {
@@ -63,7 +82,6 @@ function toFlowEdges(edges: GraphEdge[]): Edge[] {
     id: e.id,
     source: e.source,
     target: e.target,
-    label: e.label,
     style: { stroke: "#475569" },
     animated: false,
   }));
@@ -119,14 +137,21 @@ export default function GraphView() {
           edges={edges}
           nodeTypes={nodeTypes}
           onNodeClick={onNodeClick}
+          colorMode="dark"
+          minZoom={0.1}
           fitView
-          fitViewOptions={{ padding: 0.2 }}
+          fitViewOptions={{ padding: 0.1 }}
+          // Custom nodes are measured after the first paint; fit again once they are.
+          onInit={(instance) => requestAnimationFrame(() => instance.fitView({ padding: 0.1 }))}
         >
           <Background color="#334155" gap={20} />
           <Controls />
           <MiniMap
             nodeColor={(n) => TYPE_COLORS[(n.data as { nodeType: string }).nodeType] || "#64748b"}
-            style={{ background: "#1e293b" }}
+            style={{ background: "#1e293b", width: 140, height: 90 }}
+            maskColor="rgba(15, 23, 42, 0.7)"
+            pannable
+            zoomable
           />
         </ReactFlow>
       </div>

@@ -44,7 +44,9 @@ export function buildGraph(): { nodes: GraphNode[]; edges: GraphEdge[] } {
 
     if (!brief) continue;
 
-    for (const topic of parseList(brief.entities_topics).slice(0, 5)) {
+    for (const raw of parseList(brief.entities_topics).slice(0, 5)) {
+      // "Retrieval-augmented generation (RAG)" and "retrieval-augmented generation" are one topic.
+      const topic = raw.replace(/\s*\([^)]*\)\s*/g, " ").trim() || raw;
       const id = `topic:${slug(topic)}`;
       if (id === "topic:") continue;
       if (!nodes.has(id)) nodes.set(id, { id, label: topic.slice(0, 32), type: "topic" });
