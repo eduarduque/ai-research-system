@@ -12,7 +12,8 @@
     "lint": "eslint",
     "mcp": "tsx src/mcp/server.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eval": "tsx evals/run.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
@@ -56,5 +57,6 @@
   },
   "overrides": {
     "rollup": "npm:@rollup/wasm-node@^4.40.0"
-  }
+  },
+  "license": "MIT"
 }

@@ -65,6 +65,13 @@ describe("reciprocalRankFusion", () => {
     const order = [...fused.entries()].sort((x, y) => y[1] - x[1]).map(([id]) => id);
     expect(order[0]).toBe("b");
   });
+
+  it("weights let one retriever dominate", () => {
+    const rankings = [["kw-top", "sem-top"], ["sem-top", "kw-top"]];
+    const top = (w: number[]) => [...reciprocalRankFusion(rankings, 60, w).entries()].sort((x, y) => y[1] - x[1])[0][0];
+    expect(top([0.25, 1])).toBe("sem-top");
+    expect(top([1, 0.25])).toBe("kw-top");
+  });
 });
 
 describe("rankChunks", () => {

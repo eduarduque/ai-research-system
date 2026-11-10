@@ -63,13 +63,20 @@ export function bm25Scores(query: string, docs: string[], k1 = 1.2, b = 0.75): n
  * BM25 scores against cosine similarities (they live on unrelated scales).
  * score(d) = Σ 1 / (k + rank_i(d))
  */
-export function reciprocalRankFusion(rankings: string[][], k = 60): Map<string, number> {
+export function reciprocalRankFusion(rankings: string[][], k = 60, weights?: number[]): Map<string, number> {
   const fused = new Map<string, number>();
-  for (const ranking of rankings) {
-    ranking.forEach((id, rank) => fused.set(id, (fused.get(id) ?? 0) + 1 / (k + rank + 1)));
-  }
+  rankings.forEach((ranking, r) => {
+    const w = weights?.[r] ?? 1;
+    ranking.forEach((id, rank) => fused.set(id, (fused.get(id) ?? 0) + w / (k + rank + 1)));
+  });
   return fused;
 }
+
+/**
+ * Weight of the BM25 ranking relative to the vector ranking in hybrid fusion.
+ * < 1 trusts semantic similarity more; see evals/RESULTS.md for the sweep.
+ */
+export const DEFAULT_KEYWORD_WEIGHT = Number(process.env.HYBRID_KEYWORD_WEIGHT ?? 0.25);
 
 /**
  * Rank chunks for a query. `queryVector` may be null (no embedding provider, or
@@ -81,21 +88,23 @@ export function rankChunks<T extends CandidateChunk>(
   query: string,
   queryVector: ArrayLike<number> | null,
   chunks: T[],
-  opts: { mode?: RetrievalMode; k?: number; perSource?: number } = {}
+  opts: { mode?: RetrievalMode; k?: number; perSource?: number; keywordWeight?: number } = {}
 ): RankedChunk<T>[] {
-  const { mode = "hybrid", k = 6, perSource = 2 } = opts;
+  const { mode = "hybrid", k = 6, perSource = 2, keywordWeight = DEFAULT_KEYWORD_WEIGHT } = opts;
   if (chunks.length === 0) return [];
 
   const useVector = mode !== "keyword" && queryVector !== null;
   const useKeyword = mode !== "vector" || queryVector === null;
 
   const rankings: string[][] = [];
+  const weights: number[] = [];
   const raw = new Map<string, number>();
 
   if (useKeyword) {
     const scores = bm25Scores(query, chunks.map((c) => `${c.title ?? ""} ${c.text}`));
     const ranked = chunks.map((c, i) => ({ id: c.id, s: scores[i] })).filter((r) => r.s > 0).sort((a, b) => b.s - a.s);
     rankings.push(ranked.map((r) => r.id));
+    weights.push(keywordWeight);
     for (const r of ranked) raw.set(r.id, r.s);
   }
   if (useVector) {
@@ -106,10 +115,11 @@ export function rankChunks<T extends CandidateChunk>(
       .filter((r) => r.s > 0.15)
       .sort((a, b) => b.s - a.s);
     rankings.push(ranked.map((r) => r.id));
+    weights.push(1);
     for (const r of ranked) if (!raw.has(r.id)) raw.set(r.id, r.s);
   }
 
-  const scores = rankings.length === 1 ? raw : reciprocalRankFusion(rankings);
+  const scores = rankings.length === 1 ? raw : reciprocalRankFusion(rankings, 60, weights);
   const byId = new Map(chunks.map((c) => [c.id, c]));
   const perSourceCount = new Map<string, number>();
   const out: RankedChunk<T>[] = [];
