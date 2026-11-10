@@ -1,0 +1,559 @@
+{
+  "generated_at": "2026-11-10T01:09:17.401Z",
+  "corpus": {
+    "docs": 28,
+    "target_docs": 12,
+    "distractors": 16,
+    "chunks": 34,
+    "questions": 38
+  },
+  "embedding_model": "local:Xenova/all-MiniLM-L6-v2",
+  "default_keyword_weight": 0.25,
+  "retrieval": {
+    "keyword (BM25)": {
+      "overall": {
+        "n": 35,
+        "hit_at_1": 0.9142857142857143,
+        "recall_at_5": 0.9428571428571428,
+        "mrr": 0.939047619047619
+      },
+      "byKind": {
+        "lexical": {
+          "n": 12,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "paraphrase": {
+          "n": 18,
+          "hit_at_1": 0.8333333333333334,
+          "recall_at_5": 0.9444444444444444,
+          "mrr": 0.8814814814814815
+        },
+        "identifier": {
+          "n": 3,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "multi": {
+          "n": 2,
+          "hit_at_1": 1,
+          "recall_at_5": 0.5,
+          "mrr": 1
+        }
+      }
+    },
+    "vector": {
+      "overall": {
+        "n": 35,
+        "hit_at_1": 1,
+        "recall_at_5": 1,
+        "mrr": 1
+      },
+      "byKind": {
+        "lexical": {
+          "n": 12,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "paraphrase": {
+          "n": 18,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "identifier": {
+          "n": 3,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "multi": {
+          "n": 2,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        }
+      }
+    },
+    "hybrid w=1.0": {
+      "overall": {
+        "n": 35,
+        "hit_at_1": 0.9428571428571428,
+        "recall_at_5": 0.9857142857142858,
+        "mrr": 0.9714285714285714
+      },
+      "byKind": {
+        "lexical": {
+          "n": 12,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "paraphrase": {
+          "n": 18,
+          "hit_at_1": 0.8888888888888888,
+          "recall_at_5": 1,
+          "mrr": 0.9444444444444444
+        },
+        "identifier": {
+          "n": 3,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "multi": {
+          "n": 2,
+          "hit_at_1": 1,
+          "recall_at_5": 0.75,
+          "mrr": 1
+        }
+      }
+    },
+    "hybrid w=0.5": {
+      "overall": {
+        "n": 35,
+        "hit_at_1": 0.9714285714285714,
+        "recall_at_5": 0.9857142857142858,
+        "mrr": 0.9857142857142858
+      },
+      "byKind": {
+        "lexical": {
+          "n": 12,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "paraphrase": {
+          "n": 18,
+          "hit_at_1": 0.9444444444444444,
+          "recall_at_5": 1,
+          "mrr": 0.9722222222222222
+        },
+        "identifier": {
+          "n": 3,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "multi": {
+          "n": 2,
+          "hit_at_1": 1,
+          "recall_at_5": 0.75,
+          "mrr": 1
+        }
+      }
+    },
+    "hybrid w=0.25": {
+      "overall": {
+        "n": 35,
+        "hit_at_1": 1,
+        "recall_at_5": 0.9857142857142858,
+        "mrr": 1
+      },
+      "byKind": {
+        "lexical": {
+          "n": 12,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "paraphrase": {
+          "n": 18,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "identifier": {
+          "n": 3,
+          "hit_at_1": 1,
+          "recall_at_5": 1,
+          "mrr": 1
+        },
+        "multi": {
+          "n": 2,
+          "hit_at_1": 1,
+          "recall_at_5": 0.75,
+          "mrr": 1
+        }
+      }
+    }
+  },
+  "llm": {
+    "provider": "groq",
+    "model": "openai/gpt-oss-20b"
+  },
+  "answers": {
+    "n": 38,
+    "failed": 1,
+    "fact_recall": 0.9857142857142858,
+    "answers_with_citation": 1,
+    "citation_precision": 0.9571428571428572,
+    "abstention_on_unanswerable": 1,
+    "false_abstention_on_answerable": 0.02857142857142857,
+    "median_latency_ms": 7919
+  },
+  "answer_details": [
+    {
+      "q": "How much cheaper will Voltaris make battery packs for entry-level EVs?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Voltaris plans to make battery packs for entry‑level EVs about **38 % cheaper** than comparable lithium‑iron‑phosphate packs. [1]\n\n"
+    },
+    {
+      "q": "How well does the VX-9 hold its charge in freezing weather?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "The VX‑9 sodium‑ion cell retains about **91 % of its room‑temperature capacity when tested at –20 °C** [1].\n\n"
+    },
+    {
+      "q": "Which affordable battery chemistry avoids dependence on scarce lithium?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "The affordable chemistry that avoids dependence on scarce lithium is **sodium‑ion**. Sodium is roughly 1,000 times more abundant than lithium in the Earth's crust, reducing exposure to supply shocks while still delivering cost‑effective performance for budget EVs [1][3].\n\n"
+    },
+    {
+      "q": "How many charge cycles is the Finnish startup's cell rated for compared with LFP?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Voltaris rates its VX‑9 sodium‑ion cell for **3,000 full charge cycles**, compared with **6,000 cycles for leading lithium‑iron‑phosphate (LFP) cells**[3].\n\n"
+    },
+    {
+      "q": "What share of metals does Cobaltline's Reno facility recover?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Cobaltline’s Reno facility recovers 95 % of the lithium, nickel and cobalt present in the batteries it processes. [1]\n\n"
+    },
+    {
+      "q": "Why is most battery recycling feedstock factory scrap rather than old car packs?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Most battery recycling feedstock comes from factory scrap rather than old car packs because very few electric vehicles have reached retirement age, so end‑of‑life packs are scarce. Recyclers therefore rely on supply agreements with automakers for scrap from gigafactories, which currently constitutes"
+    },
+    {
+      "q": "How big was the government loan for the Nevada recovery plant?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "The government loan for the Nevada recovery plant was $275 million[1][2]\n\n"
+    },
+    {
+      "q": "What valuation did Lumenforge reach in its Series C?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Lumenforge was valued at **$2.1 billion** in its Series C round. [1]\n\n"
+    },
+    {
+      "q": "Which startup computes neural network math using light?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Lumenforge is the startup that computes neural‑network math using light. [1][5]\n\n"
+    },
+    {
+      "q": "How much of the optical chip's power goes to signal conversion?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "30 % of the optical chip’s total power is consumed by signal conversion [1].\n\n"
+    },
+    {
+      "q": "How many additional countries now need licences to buy advanced AI accelerators?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "40 additional countries now need licences to buy advanced AI accelerators.[1]\n\n"
+    },
+    {
+      "q": "Which GPU clusters qualify for the fast-track government review?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "GPU clusters that contain fewer than 1,700 accelerators qualify for the fast‑track government review. [1]\n\n"
+    },
+    {
+      "q": "When do the new trade restrictions on data-centre processors take effect?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "The new trade restrictions on data‑centre processors take effect in 120 days. [1]\n\n"
+    },
+    {
+      "q": "What percentage of Relay users said a model upgrade broke a production agent?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "64% of Relay users said a model upgrade broke a production agent. [1]\n\n"
+    },
+    {
+      "q": "How long does an agent wait for a human to approve a destructive action before giving up?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "An agent waits 15 minutes for a human to approve a destructive action before canceling it. [1][2]\n\n"
+    },
+    {
+      "q": "How much does the hosted version of the agent framework cost?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "The hosted version of the agent framework costs $49 per developer per month. [1]\n\n"
+    },
+    {
+      "q": "How many of the tested coding agents followed hidden malicious instructions?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "9 of the tested coding agents followed hidden malicious instructions [1].\n\n"
+    },
+    {
+      "q": "Does isolating an AI coding assistant from the network protect it from planted instructions?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Isolating an AI coding assistant from the network significantly reduces the risk of it following planted instructions. In the University of Lisbon study, sandboxed agents that had no network access were far less affected: only 1 of 4 sandboxed agents was compromised, whereas all 8 agents with unrest"
+    },
+    {
+      "q": "How much power did batteries deliver to the Texas grid during the record evening?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Batteries delivered a record 9.2 gigawatts to the Texas grid during the record evening [1].\n\n"
+    },
+    {
+      "q": "What happened to electricity prices after sunset once energy storage was built out?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "After sunset, the addition of energy storage flattened the evening price spike, bringing wholesale prices between 7 pm and 9 pm down to an average of about $61 per megawatt‑hour—roughly a third of the $180 per megawatt‑hour seen two years earlier when storage was less developed. Batteries supplied 9"
+    },
+    {
+      "q": "What is Corvid's new price per million input tokens?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Corvid’s new price is **$0.90 per million input tokens**[1].\n\n"
+    },
+    {
+      "q": "Do enterprise customers care more about uptime or cost when picking a model vendor?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Enterprise customers prioritize uptime over cost when selecting a model vendor, with 58% ranking reliability above price [1].\n\n"
+    },
+    {
+      "q": "How many items per hour can the Stackwise picking arm handle?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "The Stackwise picking arm can handle 650 items per hour. [1]\n\n"
+    },
+    {
+      "q": "How much does it cost a retailer per month to rent a robot arm?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "It costs a retailer about **1,800 euros per month** to rent a robot arm. [1]\n\n"
+    },
+    {
+      "q": "By how much did Meridian Health's AI scribe reduce documentation time?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Meridian Health’s AI scribe cut doctors’ documentation time by **34 %** (saving about 70 minutes per day per physician) [1].\n\n"
+    },
+    {
+      "q": "How often did the automatic clinical note drafts contain mistakes?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "The automatic clinical note drafts contained mistakes in 3.1% of cases. [1]\n\n"
+    },
+    {
+      "q": "How much memory does the Kite model need when quantised to 4 bits?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Quantised to 4 bits, the Kite model requires about **5 gigabytes of memory** [1].\n\n"
+    },
+    {
+      "q": "What fraction of the synthetic training data did the lab throw away?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "The lab discarded roughly **60 %** of the synthetic data during filtering. [1]\n\n"
+    },
+    {
+      "q": "Which Arizona data centres must publish their water consumption?",
+      "kind": "lexical",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "The 38 Arizona data centres that use more than 50 million gallons of water per year must publish their annual consumption. Most of these facilities are located in the Phoenix area. [1]\n\n"
+    },
+    {
+      "q": "How much water did switching to a recirculating cooling design save?",
+      "kind": "paraphrase",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Switching to a recirculating (closed‑loop) cooling design cut water use by **85%** [1].\n\n"
+    },
+    {
+      "q": "Which companies are making batteries cheaper and which are recycling them?",
+      "kind": "multi",
+      "factRecall": 0.5,
+      "cited": 1,
+      "abstained": 1,
+      "missing": [
+        "Voltaris"
+      ],
+      "excerpt": "The excerpts do not mention any companies that are explicitly working to make batteries cheaper.  \nThe companies that are involved in battery recycling are:\n\n- **Cobaltline** – operates the largest battery‑recovery plant in North America, processing 45,000 t/yr of spent lithium‑ion batteries and rec"
+    },
+    {
+      "q": "What are the security and reliability risks of deploying AI agents?",
+      "kind": "multi",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Deploying AI agents introduces several security and reliability risks.  \nSecurity risks include prompt injection, which can cause agents to follow hidden instructions such as adding malicious dependencies, especially when agents treat file contents as trusted data and lack network sandboxing [1].  A"
+    },
+    {
+      "q": "What is the VX-9?",
+      "kind": "identifier",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "The VX‑9 is a sodium‑ion battery cell developed by Voltaris, a Finnish startup. It delivers 162 Wh kg⁻¹, is about 38 % cheaper than lithium‑iron‑phosphate packs, and retains 91 % of its room‑temperature capacity at –20 °C. Voltaris rates the VX‑9 for 3,000 full charge cycles and plans pilot producti"
+    },
+    {
+      "q": "Prism-1 energy per token",
+      "kind": "identifier",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Prism‑1 claims to use only about one‑fifth (≈ 20 %) of the energy per token required by a conventional GPU for inference on large language models. [1]\n\n"
+    },
+    {
+      "q": "Relay 1.0 Apache 2.0",
+      "kind": "identifier",
+      "factRecall": 1,
+      "cited": 1,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Relay 1.0 remains licensed under the Apache 2.0 licence. [1][2]\n\n"
+    },
+    {
+      "q": "What is the capital of Australia?",
+      "kind": "unanswerable",
+      "factRecall": 0,
+      "cited": 0,
+      "abstained": 1,
+      "missing": [],
+      "excerpt": "No relevant research found for this question. Try ingesting more sources.\n\n"
+    },
+    {
+      "q": "How many employees does Voltaris have?",
+      "kind": "unanswerable",
+      "factRecall": 0,
+      "cited": 0,
+      "abstained": 1,
+      "missing": [],
+      "excerpt": "The excerpts do not contain the answer.\n\n"
+    },
+    {
+      "q": "What did Lumenforge's Series B round raise?",
+      "kind": "unanswerable",
+      "factRecall": 0,
+      "cited": 0,
+      "abstained": 0,
+      "missing": [],
+      "excerpt": "Could not synthesize an AI answer (API quota exceeded). Most relevant sources below.\n\n"
+    }
+  ],
+  "briefs": {
+    "n": 12,
+    "schema_valid": 1.0,
+    "numeric_grounding": 0.9895833333333334,
+    "avg_grounded_entities": 3.0833333333333335,
+    "score_range": [
+      7,
+      8
+    ],
+    "median_latency_ms": 8302
+  },
+  "notes": [
+    "Answers: run 3. One answer hit Groq's free-tier daily token limit (failed=1) and is excluded from the rates.",
+    "Briefs: taken from run 2 (identical brief code); run 3 exhausted the 200k tokens/day free-tier quota before reaching briefs."
+  ]
+}

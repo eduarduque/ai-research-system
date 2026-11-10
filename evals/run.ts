@@ -42,9 +42,18 @@ const questions: Question[] = JSON.parse(fs.readFileSync(path.join(__dirname, "d
 
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
-const norm = (s: string) => s.toLowerCase().replace(/[‐-―−]/g, "-").replace(/\s+/g, " ");
+// Fact matching must not depend on typography: models write "38 %" with narrow
+// no-break spaces, typographic dashes, etc.
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[\u00a0\u202f\u2009\u2007]/g, " ")
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/\*\*/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/(\d) %/g, "$1%");
 
-const ABSTAIN = /(not (contain|mention|include|provide|specify|state|say|cover)|no (information|mention|data|details)|does(n't| not) (say|mention|specify|state|include|provide)|cannot (find|determine|answer)|unable to|isn't (mentioned|stated|specified)|not (available|specified|stated|mentioned|found|covered) in)/i;
+const ABSTAIN = /(no relevant research found|not (contain|mention|include|provide|specify|state|say|cover)|no (information|mention|data|details)|does(n't| not) (say|mention|specify|state|include|provide)|cannot (find|determine|answer)|unable to|isn't (mentioned|stated|specified)|not (available|specified|stated|mentioned|found|covered) in)/i;
 
 async function main() {
   const { saveSource } = await import("../src/lib/ingest");
@@ -155,6 +164,9 @@ async function main() {
     // ── End-to-end answers ──
     const qs = questions.slice(0, LIMIT);
     const answerRows: {
+      q: string;
+      missing: string[];
+      excerpt: string;
       kind: Question["kind"];
       factRecall: number;
       cited: number;
@@ -173,6 +185,9 @@ async function main() {
       const nums = [...new Set(citedNumbers(body))];
       const citedDocs = nums.map((n) => idToSource.get(r.citations[n - 1]?.source_id ?? "")).filter(Boolean) as string[];
       answerRows.push({
+        q: q.q,
+        missing: q.facts.filter((f) => !body.includes(norm(f))),
+        excerpt: r.answer.split(/## Sources Used/i)[0].replace(/^## Answer\s*/i, "").slice(0, 300),
         kind: q.kind,
         factRecall: q.facts.length ? q.facts.filter((f) => body.includes(norm(f))).length / q.facts.length : 0,
         cited: nums.length > 0 ? 1 : 0,
@@ -196,6 +211,9 @@ async function main() {
       false_abstention_on_answerable: mean(ans.map((r) => r.abstained)),
       median_latency_ms: ok.map((r) => r.ms).sort((a, b) => a - b)[Math.floor(ok.length / 2)] ?? 0,
     };
+    report.answer_details = answerRows.map(({ q, kind, factRecall, cited, abstained, missing, excerpt }) => ({
+      q, kind, factRecall, cited, abstained, missing, excerpt,
+    }));
     console.log("\n");
     console.table(report.answers);
 
@@ -221,7 +239,7 @@ async function main() {
       } catch (err) {
         briefRows.push({ valid: 0, numGrounding: null, entities: 0, score: 0, ms: Date.now() - start });
         process.stdout.write("x");
-        console.warn(`\n  brief failed for ${d.id}:`, err instanceof Error ? err.message.slice(0, 160) : err);
+        console.warn(`\n  brief failed for ${d.id}:`, err instanceof Error ? err.message.slice(0, 600) : err);
       }
     }
     const valid = briefRows.filter((r) => r.valid);

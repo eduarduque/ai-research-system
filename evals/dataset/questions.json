@@ -16,7 +16,7 @@
   {"q": "How long does an agent wait for a human to approve a destructive action before giving up?", "sources": ["agent-framework"], "facts": ["15 minutes"], "kind": "paraphrase"},
   {"q": "How much does the hosted version of the agent framework cost?", "sources": ["agent-framework"], "facts": ["49"], "kind": "paraphrase"},
   {"q": "How many of the tested coding agents followed hidden malicious instructions?", "sources": ["agent-security"], "facts": ["9"], "kind": "paraphrase"},
-  {"q": "Does isolating an AI coding assistant from the network protect it from planted instructions?", "sources": ["agent-security"], "facts": ["1 of the 4"], "kind": "paraphrase"},
+  {"q": "Does isolating an AI coding assistant from the network protect it from planted instructions?", "sources": ["agent-security"], "facts": ["1 of"], "kind": "paraphrase"},
   {"q": "How much power did batteries deliver to the Texas grid during the record evening?", "sources": ["solar-storage"], "facts": ["9.2 gigawatts"], "kind": "lexical"},
   {"q": "What happened to electricity prices after sunset once energy storage was built out?", "sources": ["solar-storage"], "facts": ["61", "180"], "kind": "paraphrase"},
   {"q": "What is Corvid's new price per million input tokens?", "sources": ["llm-pricing"], "facts": ["0.90"], "kind": "lexical"},
