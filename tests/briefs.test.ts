@@ -39,6 +39,14 @@ describe("normalizeBriefData", () => {
     expect(b.key_ideas).toEqual(["Costs fell 60%"]);
   });
 
+  it("flattens list items returned as objects instead of rejecting the brief", () => {
+    const b = normalizeBriefData(
+      { ...good, key_ideas: [{ idea: "Costs fell 60%", detail: "vs last year" }, "Copilot at 400 million"] },
+      article
+    );
+    expect(b.key_ideas).toEqual(["Costs fell 60% — vs last year", "Copilot at 400 million"]);
+  });
+
   it("rejects output with no summary or key ideas", () => {
     expect(() => normalizeBriefData({ ...good, summary: "" }, article)).toThrow();
     expect(() => normalizeBriefData({ ...good, key_ideas: [] }, article)).toThrow();

@@ -35,6 +35,9 @@ export function finalizeAnswer(
   const max = citations.length;
   let body = (raw.split(/\n#+\s*Sources Used/i)[0] || "").trim();
   body = body
+    // Some models (e.g. gpt-oss) cite as 【1】, ［1］ or [^1]; normalize to [1].
+    .replace(/[【［]\s*(\d+(?:\s*[,，]\s*\d+)*)\s*[】］]/g, (_, l: string) => `[${l.replace(/，/g, ",")}]`)
+    .replace(/\[\^(\d+)\]/g, "[$1]")
     .replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (_, list: string) => {
       const valid = list.split(",").map((n) => Number(n.trim())).filter((n) => n >= 1 && n <= max);
       return valid.map((n) => `[${n}]`).join("");

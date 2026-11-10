@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { getSourceById, insertBrief, getBriefBySourceId, deleteBriefBySourceId } from "./db";
-import { getAIClient } from "./ai";
+import { getAIClient, reasoningOptions } from "./ai";
 import type { Brief } from "./types";
 
 export type BriefData = {
@@ -16,9 +16,17 @@ export type BriefData = {
 
 // Lenient schema: small models return numbers as strings, single strings instead
 // of arrays, etc. Coerce what's recoverable; reject what isn't.
+// Items sometimes come back as objects ({"idea": "...", "detail": "..."}); flatten
+// them to their string values instead of rejecting the whole brief.
+const itemToString = (v: unknown): string =>
+  typeof v === "string" || typeof v === "number"
+    ? String(v)
+    : v && typeof v === "object"
+      ? Object.values(v).filter((x) => typeof x === "string" || typeof x === "number").join(" — ")
+      : "";
 const stringList = z
-  .union([z.array(z.union([z.string(), z.number()])), z.string()])
-  .transform((v) => (Array.isArray(v) ? v.map(String) : v ? [v] : []))
+  .union([z.array(z.unknown()), z.string()])
+  .transform((v) => (Array.isArray(v) ? v.map(itemToString) : v ? [v] : []))
   .transform((v) => v.map((s) => s.trim()).filter(Boolean));
 
 export const BriefSchema = z.object({
@@ -165,10 +173,7 @@ export async function generateBriefData(title: string, url: string, content: str
     model: ai.model,
     messages: [{ role: "user", content: buildBriefPrompt(title, url, truncated) }],
     temperature: 0.3,
-    // Reasoning models (e.g. Groq's gpt-oss) spend a large, variable share of the
-    // completion budget on internal reasoning before writing the JSON — too low a
-    // cap silently truncates the response to nothing.
-    max_completion_tokens: 16000,
+    ...reasoningOptions(ai.model),
     // Ollama doesn't guarantee response_format support across all models.
     ...(ai.provider !== "ollama" && { response_format: { type: "json_object" as const } }),
   });

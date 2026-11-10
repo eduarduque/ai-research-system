@@ -32,6 +32,12 @@ describe("finalizeAnswer", () => {
     expect(out).not.toContain("Article B");
   });
 
+  it("normalizes full-width and footnote-style citations (gpt-oss emits 【1】)", () => {
+    expect(finalizeAnswer("## Answer\nLoan was $275M【1】【2】 and [^3].", citations, sources)).toContain(
+      "Loan was $275M[1][2] and [3]."
+    );
+  });
+
   it("adds the Answer heading when the model omits it", () => {
     expect(finalizeAnswer("Plain text [3]", citations, sources)).toMatch(/^## Answer\nPlain text \[3\]/);
   });
