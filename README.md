@@ -1,231 +1,143 @@
 # AI Research Intelligence System
 
-A full-stack research pipeline that ingests articles and RSS feeds, generates structured AI briefs, answers questions using RAG with vector search, and maps topic relationships in a knowledge graph.
+[![CI](https://github.com/eduarduque/ai-research-system/actions/workflows/ci.yml/badge.svg)](https://github.com/eduarduque/ai-research-system/actions/workflows/ci.yml)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 
-Built with Next.js 16, SQLite, and a provider-agnostic LLM layer (OpenAI, Groq, or Ollama).
+A self-hosted research assistant: save articles and RSS items, get **grounded AI briefs**, ask **questions answered only from what you have saved — with every claim linked to the passage it came from** — and explore how topics connect across sources.
+
+Runs entirely free: Groq's free tier for the LLM, and a local embedding model for semantic search (no API key). Also works with OpenAI or fully offline with Ollama.
 
 <p align="center">
-  <img src="public/screenshots/dashboard.jpg" width="49%" alt="Dashboard" />
-  <img src="public/screenshots/knowledge-graph.jpg" width="49%" alt="Knowledge graph" />
+  <img src="docs/screenshots/ask.png" width="49%" alt="Cited answer with retrieved passages" />
+  <img src="docs/screenshots/brief.png" width="49%" alt="Structured research brief" />
 </p>
 
----
+<!-- RESULTS -->
 
-## How It Works
+## What's interesting here
 
-### Ingestion Pipeline
+- **Hybrid retrieval, measured.** Articles are split into overlapping, sentence-aligned chunks. Queries run BM25 *and* vector search, fused with weighted reciprocal rank fusion. The fusion weight was picked from a sweep in the eval harness, not guessed.
+- **Citations you can trust.** Model output is repaired before it reaches the user: citation numbers that don't match a retrieved passage are removed, and "Sources Used" is rebuilt from what was actually retrieved. Early testing caught the model inventing sources and reusing Wikipedia's `[18]` footnote markers as citations, so both are now handled.
+- **Grounded briefs.** A two-step prompt (extract names/numbers verbatim → analyze using only those), Zod validation of the JSON, and entity filtering against the source text. When no model is reachable, the fallback is *extractive* and labelled — never placeholder text masquerading as analysis.
+- **Eval harness.** A fictional corpus (so the model can't answer from memory) with near-duplicate distractors, scored for retrieval quality, answer fact recall, citation precision, refusal on unanswerable questions, and brief grounding. CI runs the LLM-free part on every push and fails on regressions.
+- **Safe to expose.** SSRF protection on every user-supplied URL (DNS-resolved private ranges, per-hop redirect checks), optional access token, per-IP rate limiting on LLM routes, HMAC-verified Slack events.
+- **Three interfaces, one engine.** Web UI, an [MCP](https://modelcontextprotocol.io) server for Claude Desktop/Claude Code, and a Slack bot all call the same `src/lib` functions.
 
-```
-URL / RSS item
-      │
-      ▼
- Scraper layer
- ├── Puppeteer (JS-rendered pages)
- └── Cheerio + Readability (static pages)
-      │
-      ▼
- Text extraction → stored in SQLite
-      │
-      ├──► Embedding model → vector stored alongside content
-      │         (OpenAI text-embedding-3-small  OR  Ollama nomic-embed-text)
-      │
-      └──► Brief generator (on demand)
-               Two-step LLM prompt: extract entities → analyze significance
-               Output: summary, key ideas, entities, opportunity score, next action
-```
+Design details and trade-offs: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
-### RAG Search Pipeline
-
-```
-User question
-      │
-      ▼
- Embed query  ──────────────────────────────────────────────────────────────┐
-      │                                                                      │
-      ▼                                                                      │
- Cosine similarity vs all stored embeddings  ←── SQLite (content + vectors) ┘
-      │
-      ▼
- Top-5 retrieval (falls back to keyword scoring if no embeddings)
-      │
-      ▼
- LLM synthesis prompt with retrieved context
-      │
-      ▼
- Cited answer  →  "## Answer … [1] [2]  ## Sources Used …"
-```
-
-### Knowledge Graph
-
-Sources, topics, and entities extracted from briefs become graph nodes. Edges connect sources to their topics, topics to entities, and topics to opportunities — rendered with React Flow for visual exploration.
-
----
-
-## Key Engineering Decisions
-
-**Provider-agnostic LLM layer** — OpenAI, Groq (Llama 3.1), and Ollama all share the OpenAI SDK's `/v1/chat/completions` and `/v1/embeddings` interfaces. Switching providers is one env variable change with zero code changes.
-
-**Cosine similarity in-process** — Embeddings are stored as JSON blobs in SQLite and similarity is computed in TypeScript. No vector database needed for this scale; the implementation is transparent and portable.
-
-**Graceful degradation** — If no embedding provider is configured, RAG falls back to keyword scoring. If no LLM is configured, ingestion and the graph still work. Each layer is independent.
-
-**Two-step brief generation** — Content is first extracted (structured fields), then analyzed (why it matters, opportunity score). Separating extraction from reasoning reduces hallucination and makes outputs consistent.
-
----
-
-## Stack
-
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 16, App Router, TypeScript |
-| Database | SQLite via `better-sqlite3` |
-| Scraping | Puppeteer Core + Cheerio + @mozilla/readability |
-| Embeddings | OpenAI `text-embedding-3-small` / Ollama `nomic-embed-text` |
-| LLM | OpenAI SDK (shared interface for OpenAI, Groq, Ollama) |
-| Graph UI | React Flow (`@xyflow/react`) |
-| Content parsing | `rss-parser`, `cheerio`, `@mozilla/readability` |
-
----
-
-## Quick Start
+## Quick start
 
 ```bash
 git clone https://github.com/eduarduque/ai-research-system.git
 cd ai-research-system
 npm install
-cp .env.example .env.local
-# Configure one AI provider (see below)
+cp .env.example .env.local   # add a free GROQ_API_KEY from console.groq.com
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Five RSS feeds are pre-seeded on first run.
+Open http://localhost:3000. On first boot a few items from the default feeds are pulled in so the library isn't empty. The embedding model (~23 MB) downloads once on first use.
 
----
-
-## AI Provider Setup
-
-Open `.env.local` and configure **one** provider. The app uses whichever key is present first.
-
-### Groq — free, no credit card, 2-minute setup (recommended for trying it out)
-
-Sign up at [console.groq.com](https://console.groq.com), create a key:
-
-```env
-GROQ_API_KEY=gsk_...
-```
-
-Uses Llama 3.1 8B. Generous free tier.
-
----
-
-### Ollama — fully local, works offline
+**Docker**
 
 ```bash
-# Install from ollama.com/download, then:
-ollama pull qwen2.5:7b          # chat model (4.7 GB)
-ollama pull nomic-embed-text    # embedding model (274 MB)
+docker build -t ai-research-system .
+docker run -p 3000:3000 -v research-data:/app/data -e GROQ_API_KEY=gsk_... ai-research-system
 ```
 
-```env
-OLLAMA_MODEL=qwen2.5:7b
-OLLAMA_EMBED_MODEL=nomic-embed-text
+## How it works
+
+```
+URL / RSS item / Slack link / MCP tool call
+        │
+        ▼
+ SSRF-checked fetch → Readability extraction → (headless Chrome if client-rendered)
+        │
+        ▼
+ canonical URL + dedupe ──► SQLite: sources
+        │
+        ▼
+ sentence-aligned chunks (~900 chars, overlap) ──► embeddings (local MiniLM | OpenAI | Ollama)
+        │                                              stored as float32 BLOB + model id
+        ▼
+ Question ─► BM25 ┐
+          └► cosine ┴► weighted RRF ─► top-6 passages ─► LLM ─► citation repair ─► answer
 ```
 
----
+Full diagram and rationale in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-### OpenAI
+## Features
 
-```env
-OPENAI_API_KEY=sk-proj-...
-```
-
-Uses `gpt-4o-mini` by default. Also enables `text-embedding-3-small` for semantic search.
-
----
-
-### No provider
-
-The app still works without an LLM — ingestion, RSS, library, and the knowledge graph all function. Brief generation falls back to a template; RAG falls back to keyword matching.
-
----
-
-## Environment Variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `GROQ_API_KEY` | — | Groq API key |
-| `GROQ_MODEL` | `llama-3.1-8b-instant` | Groq model |
-| `OPENAI_API_KEY` | — | OpenAI API key |
-| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model |
-| `OLLAMA_MODEL` | — | Ollama model (e.g. `qwen2.5:7b`) |
-| `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Ollama embedding model |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `DATA_DIR` | `./data` | SQLite database directory |
-
----
-
-## MCP Server
-
-The app's core capabilities are also exposed as an [MCP](https://modelcontextprotocol.io) server, so Claude Desktop, Claude Code, or any other MCP client can call them directly as tools instead of going through the web UI.
-
-**Tools exposed:**
-
-| Tool | Description |
+| Page | What it does |
 |---|---|
-| `ingest_url` | Fetch a URL, extract readable content, save it as a source, embed it |
-| `ask_research` | RAG question-answering over all saved research |
-| `generate_brief` | Generate (or fetch) a structured brief for a source |
-| `list_sources` | List all saved sources |
-| `get_research_graph` | Get the topic/opportunity knowledge graph |
+| `/` | Stats, one-tap **Discover** (pull new feed items, skip anything already saved) |
+| `/ingest` | Paste any URL — extracted, chunked, embedded; duplicates detected |
+| `/rss` | Browse feeds; ingest an item and brief it in one click |
+| `/library` | All sources; generate, regenerate or delete briefs |
+| `/briefs/[id]` | Summary, key ideas, entities, why it matters, opportunity score, next action |
+| `/ask` | Cited answers with the retrieved passages and the retrieval mode used |
+| `/graph` | Sources → shared topics → opportunities (React Flow) |
+| `/slack` | Integration status and setup |
 
-**Run it standalone:**
+## AI providers
+
+Configure one in `.env.local`; the first one present wins (OpenAI → Groq → Ollama).
+
+| Provider | LLM | Embeddings | Cost |
+|---|---|---|---|
+| **Groq** | `openai/gpt-oss-20b` | local MiniLM (in-process) | free tier |
+| **Ollama** | any local model, e.g. `qwen2.5:7b` | `nomic-embed-text` | free, offline |
+| **OpenAI** | `gpt-4o-mini` | `text-embedding-3-small` | paid |
+| none | extractive briefs, passage search | local MiniLM | free |
+
+Switching embedding models is safe: vectors are tagged with the model that produced them, and stale sources are re-indexed in the background on boot.
+
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `GROQ_API_KEY` / `OPENAI_API_KEY` | — | LLM provider (see above) |
+| `GROQ_MODEL` / `OPENAI_MODEL` / `OLLAMA_MODEL` | see table | Override the chat model |
+| `EMBEDDING_PROVIDER` | auto | Force `local`, `openai`, `ollama` or `none` |
+| `HYBRID_KEYWORD_WEIGHT` | `0.25` | BM25 weight in rank fusion (vector = 1) |
+| `APP_ACCESS_TOKEN` | — | Require this token (login page or `Authorization: Bearer`) |
+| `RATE_LIMIT_PER_MIN` | `30` | Per-IP limit on LLM / fetch endpoints |
+| `ALLOW_PRIVATE_URLS` | `false` | Allow ingesting intranet URLs (disables the SSRF block) |
+| `BROWSER_SCRAPE` / `CHROME_PATH` | auto | Headless fallback for JS-rendered pages |
+| `DATA_DIR` | `./data` | SQLite location |
+| `SLACK_SIGNING_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_WEBHOOK_URL` | — | Slack bot and weekly digest |
+
+## MCP server
 
 ```bash
 npm run mcp
 ```
 
-**Use it from Claude Code / Claude Desktop:** a project-scoped `.mcp.json` is already checked in, pointing at `npx tsx src/mcp/server.ts`. Open this project directory in Claude Code and the five tools above are available automatically — no extra config needed. For Claude Desktop, add the same `command`/`args` from `.mcp.json` to its MCP server settings.
+A project-scoped `.mcp.json` is included, so opening this folder in Claude Code exposes the tools automatically.
 
-The MCP server shares the same SQLite database, AI provider config, and ingestion/RAG/brief logic as the web app (`src/lib/ingest.ts`, `src/lib/ask.ts`, `src/lib/briefs.ts`, `src/lib/graph.ts`) — it's a second interface onto the same engine, not a separate implementation.
-
----
-
-## Pages
-
-| Route | Description |
+| Tool | Description |
 |---|---|
-| `/` | Dashboard — stats and quick actions |
-| `/ingest` | Paste any URL to extract and save |
-| `/rss` | Browse RSS feeds and save items |
-| `/library` | All saved sources with brief generation |
-| `/briefs/[id]` | Full structured brief for a source |
-| `/ask` | RAG question answering over saved research |
-| `/graph` | Knowledge graph of sources, topics, entities |
-| `/slack` | Slack integration stub and API docs |
+| `ingest_url` | Fetch, extract, chunk and embed a URL |
+| `ask_research` | Cited RAG answer over the library |
+| `generate_brief` | Structured brief for a source (`force` to regenerate) |
+| `discover_latest` | Pull new items from all feeds, skipping duplicates |
+| `list_sources` | Saved sources |
+| `get_research_graph` | Topic/opportunity graph |
 
----
+## Development
 
-## API Routes
+```bash
+npm test                          # 76 unit + integration tests (in-memory SQLite, no network)
+npm run lint && npm run typecheck
+npm run eval -- --retrieval-only  # retrieval benchmark, no LLM needed
+npm run eval                      # + answers and briefs with your configured LLM
+```
 
-| Method | Route | Description |
-|---|---|---|
-| POST | `/api/ingest/url` | Ingest a URL |
-| GET | `/api/sources` | List all sources |
-| POST | `/api/briefs/generate` | Generate a brief for a source |
-| GET | `/api/briefs` | List all briefs |
-| GET | `/api/rss/feeds` | List RSS feeds |
-| POST | `/api/rss/fetch` | Fetch items from a feed |
-| POST | `/api/rss/ingest` | Save an RSS item as a source |
-| POST | `/api/ask` | RAG question answering |
-| GET | `/api/graph` | Graph nodes and edges |
-| POST | `/api/slack/research` | Slack stub endpoint |
-| POST | `/api/slack/events` | Slack Events API webhook |
+CI (GitHub Actions) runs lint, typecheck, tests, a production build, the retrieval eval with a regression floor, and a Docker build.
 
----
+## Stack
 
-## Notes
+Next.js 16 (App Router) · TypeScript · SQLite (`better-sqlite3`) · transformers.js · OpenAI SDK (OpenAI/Groq/Ollama) · Zod · Mozilla Readability · Puppeteer · React Flow · Tailwind · Vitest · MCP SDK
 
-- SQLite database auto-creates at `data/research.db` on first run
-- Chrome must be installed for JS-rendered pages; the app falls back to plain fetch for static sites
-- Embeddings are generated on ingest; if no embedding provider is set, `/ask` uses keyword matching
-- Different embedding providers produce different vector dimensions — the cosine similarity function returns 0 for mismatched dimensions rather than producing incorrect results
+## License
+
+MIT
