@@ -2,6 +2,9 @@ import Link from "next/link";
 import { getSources, getBriefs } from "@/lib/db";
 import type { Source, Brief } from "@/lib/types";
 import GenerateBriefButton from "./GenerateBriefButton";
+import DeleteSourceButton from "./DeleteSourceButton";
+
+export const dynamic = "force-dynamic";
 
 export default function LibraryPage() {
   const sources = getSources() as Source[];
@@ -39,14 +42,22 @@ export default function LibraryPage() {
                     )}
                   </div>
                   <div className="flex flex-col gap-2 shrink-0 items-end">
-                    {brief ? (
+                    {brief && !brief.is_fallback ? (
                       <Link href={`/briefs/${brief.id}`} className="bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium px-3 py-1.5 rounded transition-colors">
                         View Brief
                       </Link>
+                    ) : brief ? (
+                      <>
+                        <Link href={`/briefs/${brief.id}`} className="text-xs text-amber-300 hover:underline" title="Generated without AI - regenerate for full analysis">
+                          Extractive brief
+                        </Link>
+                        <GenerateBriefButton sourceId={s.id} label="Regenerate" />
+                      </>
                     ) : (
                       <GenerateBriefButton sourceId={s.id} />
                     )}
-                    {brief?.product_opportunity_score != null && (
+                    <DeleteSourceButton sourceId={s.id} title={s.title} />
+                    {brief?.product_opportunity_score != null && !brief.is_fallback && (
                       <span className="text-xs text-slate-500">
                         Score: <span className="text-emerald-400 font-medium">{brief.product_opportunity_score}/10</span>
                       </span>

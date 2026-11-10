@@ -1,6 +1,9 @@
 import Link from "next/link";
-import { getSources, getBriefs } from "@/lib/db";
+import { getSources, getBriefs, getRssFeeds } from "@/lib/db";
+import DiscoverButton from "./DiscoverButton";
 import type { Source, Brief } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
 
 export default function Dashboard() {
   const sources = getSources() as Source[];
@@ -10,7 +13,7 @@ export default function Dashboard() {
   const stats = [
     { label: "Sources Ingested", value: sources.length, href: "/library", color: "bg-sky-500" },
     { label: "Briefs Generated", value: briefs.length, href: "/library", color: "bg-violet-500" },
-    { label: "RSS Feeds", value: 4, href: "/rss", color: "bg-emerald-500" },
+    { label: "RSS Feeds", value: getRssFeeds().length, href: "/rss", color: "bg-emerald-500" },
   ];
 
   const quickActions = [
@@ -24,10 +27,10 @@ export default function Dashboard() {
     <div className="max-w-4xl">
       <h1 className="text-2xl font-bold mb-1">AI Research Intelligence System</h1>
       <p className="text-slate-400 mb-8 text-sm">
-        Capture research, generate AI briefs, and explore connections.
+        Capture articles, get grounded AI briefs, ask cited questions across everything you have read, and explore how topics connect.
       </p>
 
-      <div className="grid grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
         {stats.map((c) => (
           <Link key={c.label} href={c.href} className="bg-slate-800 rounded-xl p-5 hover:bg-slate-700 transition-colors">
             <div className={`inline-block w-2 h-2 rounded-full ${c.color} mb-3`} />
@@ -37,10 +40,12 @@ export default function Dashboard() {
         ))}
       </div>
 
+      <DiscoverButton />
+
       <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
         Quick Actions
       </h2>
-      <div className="grid grid-cols-2 gap-3 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10">
         {quickActions.map((a) => (
           <Link key={a.href} href={a.href} className="bg-slate-800 rounded-lg p-4 hover:bg-slate-700 transition-colors">
             <div className="font-medium text-sm mb-1">{a.label}</div>

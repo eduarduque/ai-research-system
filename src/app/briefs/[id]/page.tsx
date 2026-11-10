@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBriefById } from "@/lib/db";
 import type { Brief } from "@/lib/types";
+import GenerateBriefButton from "@/app/library/GenerateBriefButton";
+
+export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -28,14 +31,28 @@ export default async function BriefDetailPage({ params }: Props) {
         {brief.source_url}
       </a>
 
-      <div className="mt-6 grid grid-cols-1 gap-4">
+      {brief.is_fallback ? (
+        <div className="mt-6 bg-amber-900/30 border border-amber-700/40 text-amber-200 text-sm rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+          <span className="flex-1">
+            Extractive brief: built from the article&apos;s own sentences because no AI model was reachable. Analysis
+            fields are not assessed.
+          </span>
+          <GenerateBriefButton sourceId={brief.source_id} force label="Regenerate with AI" />
+        </div>
+      ) : (
+        <div className="mt-4 flex justify-end">
+          <GenerateBriefButton sourceId={brief.source_id} force label="Regenerate" />
+        </div>
+      )}
+
+      <div className="mt-4 grid grid-cols-1 gap-4">
         {/* Summary */}
         <div className="bg-slate-800 rounded-lg p-5">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">Summary</h2>
           <p className="text-sm text-slate-200 leading-relaxed">{brief.summary}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Key Ideas */}
           <div className="bg-slate-800 rounded-lg p-5">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">Key Ideas</h2>
@@ -67,7 +84,7 @@ export default async function BriefDetailPage({ params }: Props) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Opportunity Ideas */}
           <div className="bg-slate-800 rounded-lg p-5">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">Opportunity Ideas</h2>

@@ -28,28 +28,34 @@ function CustomNode({ data }: { data: { label: string; nodeType: string } }) {
       style={{ borderColor: color }}
       className="px-3 py-2 rounded-lg border-2 bg-slate-800 text-slate-100 text-xs max-w-[140px] shadow-md cursor-pointer"
     >
-      <Handle type="target" position={Position.Top} style={{ background: color }} />
+      <Handle type="target" position={Position.Left} style={{ background: color }} />
       <div style={{ color }} className="font-bold text-[9px] uppercase tracking-wider mb-0.5">
         {data.nodeType}
       </div>
       <div className="leading-tight">{data.label}</div>
-      <Handle type="source" position={Position.Bottom} style={{ background: color }} />
+      <Handle type="source" position={Position.Right} style={{ background: color }} />
     </div>
   );
 }
 
 const nodeTypes: NodeTypes = { custom: CustomNode };
 
+// Layered layout: sources -> topics -> opportunities, left to right. Deterministic,
+// so the graph doesn't jump around between visits.
+const COLUMN: Record<GraphNode["type"], number> = { source: 0, topic: 1, entity: 1, opportunity: 2 };
+
 function toFlowNodes(nodes: GraphNode[]): Node[] {
-  return nodes.map((n, i) => ({
-    id: n.id,
-    type: "custom",
-    position: {
-      x: (i % 6) * 200 + Math.random() * 30,
-      y: Math.floor(i / 6) * 160 + Math.random() * 30,
-    },
-    data: { label: n.label, nodeType: n.type },
-  }));
+  const rowInColumn = [0, 0, 0];
+  return nodes.map((n) => {
+    const col = COLUMN[n.type] ?? 1;
+    const row = rowInColumn[col]++;
+    return {
+      id: n.id,
+      type: "custom",
+      position: { x: col * 320, y: row * 90 },
+      data: { label: n.label, nodeType: n.type, href: n.href },
+    };
+  });
 }
 
 function toFlowEdges(edges: GraphEdge[]): Edge[] {
@@ -80,12 +86,8 @@ export default function GraphView() {
   }, []);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    if ((node.data as { nodeType: string }).nodeType === "source") {
-      // source node id format: src-<uuid>
-      const sourceId = node.id.replace(/^src-/, "");
-      window.open(`/library`, "_self");
-      void sourceId;
-    }
+    const href = (node.data as { href?: string }).href;
+    if (href) window.location.href = href;
   }, []);
 
   if (loading) {
@@ -128,7 +130,7 @@ export default function GraphView() {
           />
         </ReactFlow>
       </div>
-      <p className="text-xs text-slate-500 mt-2">Click a source node to view the library.</p>
+      <p className="text-xs text-slate-500 mt-2">Click a source node to open its brief. Topics shared by several sources are merged into one node.</p>
     </div>
   );
 }

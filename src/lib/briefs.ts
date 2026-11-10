@@ -1,23 +1,40 @@
 import { v4 as uuidv4 } from "uuid";
-import { getSourceById, insertBrief, getBriefBySourceId } from "./db";
+import { z } from "zod";
+import { getSourceById, insertBrief, getBriefBySourceId, deleteBriefBySourceId } from "./db";
 import { getAIClient } from "./ai";
 import type { Brief } from "./types";
 
-function buildMarkdown(
-  title: string,
-  url: string,
-  data: {
-    summary: string;
-    key_ideas: string[];
-    entities_topics: string[];
-    why_it_matters: string;
-    opportunity_ideas: string[];
-    product_opportunity_score: number;
-    recommended_next_action: string;
-  }
-): string {
-  return `# Research Brief
+export type BriefData = {
+  summary: string;
+  key_ideas: string[];
+  entities_topics: string[];
+  why_it_matters: string;
+  opportunity_ideas: string[];
+  product_opportunity_score: number;
+  recommended_next_action: string;
+};
 
+// Lenient schema: small models return numbers as strings, single strings instead
+// of arrays, etc. Coerce what's recoverable; reject what isn't.
+const stringList = z
+  .union([z.array(z.union([z.string(), z.number()])), z.string()])
+  .transform((v) => (Array.isArray(v) ? v.map(String) : v ? [v] : []))
+  .transform((v) => v.map((s) => s.trim()).filter(Boolean));
+
+export const BriefSchema = z.object({
+  _grounding: z.object({ numbers: stringList.optional(), names: stringList.optional() }).partial().optional(),
+  summary: z.string().trim().min(1),
+  key_ideas: stringList.pipe(z.array(z.string()).min(1)),
+  entities_topics: stringList,
+  why_it_matters: z.string().trim().default(""),
+  opportunity_ideas: stringList.default([]),
+  product_opportunity_score: z.coerce.number().transform((n) => Math.min(10, Math.max(1, Math.round(n || 5)))),
+  recommended_next_action: z.string().trim().default(""),
+});
+
+function buildMarkdown(title: string, url: string, data: BriefData, isFallback: boolean): string {
+  return `# Research Brief
+${isFallback ? "\n> Generated without an AI model (extractive fallback). Regenerate once a provider is available.\n" : ""}
 ## Source
 **${title}**
 ${url}
@@ -45,7 +62,7 @@ ${data.recommended_next_action}
 `;
 }
 
-function extractJSON(raw: string): Record<string, unknown> {
+export function extractJSON(raw: string): unknown {
   try { return JSON.parse(raw); } catch { /* try extraction below */ }
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (fenced) { try { return JSON.parse(fenced[1]); } catch { /* continue */ } }
@@ -54,74 +71,63 @@ function extractJSON(raw: string): Record<string, unknown> {
   throw new Error("No valid JSON found in model response");
 }
 
-function deterministicBrief(title: string, url: string, content: string) {
-  const words = content.split(/\s+/).slice(0, 30).join(" ");
+function splitSentences(text: string): string[] {
+  return (text.replace(/\s+/g, " ").match(/[^.!?]+[.!?]+/g) ?? [text]).map((s) => s.trim()).filter((s) => s.length > 30);
+}
+
+/**
+ * Non-AI brief built only from the article's own sentences. Everything in it is
+ * verbatim from the source — less insightful than an LLM brief, but never wrong.
+ */
+export function extractiveBrief(title: string, content: string): BriefData {
+  const sentences = splitSentences(content);
+  const withNumbers = sentences.filter((s) => /\d/.test(s));
+  const keyIdeas = [...new Set([...withNumbers, ...sentences.slice(1)])].slice(0, 4);
+
+  const counts = new Map<string, number>();
+  for (const m of content.matchAll(/\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\b/g)) {
+    const name = m[1];
+    if (/^(The|A|An|In|On|It|This|That|But|And|For|We|He|She|They|I)$/.test(name)) continue;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  const entities = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n]) => n);
+
   return {
-    summary: `Article about: ${title}. ${words}...`,
-    key_ideas: ["Key concept extracted from source", "Secondary insight", "Notable detail"],
-    entities_topics: ["AI", "Technology", title.split(" ")[0]],
-    why_it_matters: "This source covers topics relevant to AI strategy and product development.",
-    opportunity_ideas: ["Explore this topic further", "Apply insights to current projects"],
+    summary: sentences.slice(0, 2).join(" ") || title,
+    key_ideas: keyIdeas.length ? keyIdeas : [title],
+    entities_topics: entities,
+    why_it_matters: "Not assessed — no AI model was available when this brief was generated.",
+    opportunity_ideas: [],
     product_opportunity_score: 5,
-    recommended_next_action: "Read the full article and identify actionable items.",
+    recommended_next_action: "Regenerate this brief with an AI provider configured for analysis.",
   };
 }
 
-type BriefData = {
-  summary: string;
-  key_ideas: string[];
-  entities_topics: string[];
-  why_it_matters: string;
-  opportunity_ideas: string[];
-  product_opportunity_score: number;
-  recommended_next_action: string;
-};
-
-function normalizeBriefData(raw: Record<string, unknown>, articleContent: string): BriefData {
-  const arr = (v: unknown): string[] => Array.isArray(v) ? v.map(String) : [];
+/**
+ * Validate model output and drop hallucinated entities: an entity is kept only if
+ * it appears in the article text or in the model's own verbatim _grounding.names.
+ */
+export function normalizeBriefData(raw: unknown, articleContent: string): BriefData {
+  const parsed = BriefSchema.parse(raw);
   const src = articleContent.toLowerCase();
-
-  // The model extracts its own grounding names in _grounding.names before analyzing.
-  // We use those as the authoritative set of what belongs in entities_topics.
-  const grounding = (raw._grounding ?? {}) as Record<string, unknown>;
-  const groundedNames = new Set(arr(grounding.names).map(n => n.toLowerCase()));
-
-  // Validate entities: must appear in the article text OR in model's own extracted names.
-  // This removes GPT-3/DALL-E style hallucinations where the model drew from training knowledge.
-  const rawEntities = arr(raw.entities_topics);
-  const validEntities = rawEntities.filter(e =>
-    src.includes(e.toLowerCase()) || groundedNames.has(e.toLowerCase())
+  const groundedNames = new Set((parsed._grounding?.names ?? []).map((n) => n.toLowerCase()));
+  const validEntities = parsed.entities_topics.filter(
+    (e) => src.includes(e.toLowerCase()) || (groundedNames.has(e.toLowerCase()) && src.includes(e.toLowerCase().split(" ")[0]))
   );
 
   return {
-    summary: String(raw.summary || ""),
-    key_ideas: arr(raw.key_ideas),
-    entities_topics: validEntities.length >= 2 ? validEntities : rawEntities,
-    why_it_matters: String(raw.why_it_matters || ""),
-    opportunity_ideas: arr(raw.opportunity_ideas),
-    product_opportunity_score: Number(raw.product_opportunity_score) || 5,
-    recommended_next_action: String(raw.recommended_next_action || ""),
+    summary: parsed.summary,
+    key_ideas: parsed.key_ideas,
+    entities_topics: validEntities,
+    why_it_matters: parsed.why_it_matters,
+    opportunity_ideas: parsed.opportunity_ideas,
+    product_opportunity_score: parsed.product_opportunity_score,
+    recommended_next_action: parsed.recommended_next_action,
   };
 }
 
-export async function generateBrief(sourceId: string): Promise<Brief> {
-  const source = getSourceById(sourceId) as { id: string; title: string; url: string; content: string } | undefined;
-  if (!source) {
-    throw new Error("Source not found");
-  }
-
-  // Return existing brief if already generated
-  const existing = getBriefBySourceId(sourceId) as Brief | undefined;
-  if (existing) return existing;
-
-  // 6000 chars fits within most local model context windows while giving much more article content
-  const truncatedContent = source.content.slice(0, 6000);
-  let briefData: BriefData;
-  const ai = getAIClient();
-
-  if (ai) {
-    try {
-      const prompt = `You are a research analyst summarizing a news article for a technology professional who wants to stay current on AI, tech, and the broader industry.
+export function buildBriefPrompt(title: string, url: string, content: string): string {
+  return `You are a research analyst summarizing an article for a technology professional who wants to stay current on AI, tech, and the broader industry.
 
 YOUR TASK HAS TWO STEPS:
 
@@ -135,51 +141,68 @@ JSON FIELDS:
 "_grounding": { "numbers": string[], "names": string[] }
 "summary": 2-3 sentences — what happened, who is involved, and the single most important finding or number
 "key_ideas": 4-5 specific insights that include actual numbers and names from the article. Not generic observations — concrete findings a reader would want to know.
-"entities_topics": 3-5 names from _grounding.names
-"why_it_matters": what does this development mean for the tech and AI industry? What trend does it confirm or challenge? Be specific — one clear insight, not a generic statement.
+"entities_topics": 3-5 names copied exactly from _grounding.names
+"why_it_matters": what does this development mean for the tech and AI industry? What trend does it confirm or challenge? One clear, specific insight.
 "opportunity_ideas": 2-3 concrete areas, questions, or shifts worth watching based on what this article reveals
-"product_opportunity_score": 1-10 — how significant is this story for someone following AI and tech right now?
+"product_opportunity_score": integer 1-10 — how significant is this story for someone following AI and tech right now? Reserve 9-10 for genuinely industry-shifting news.
 "recommended_next_action": one specific follow-up a reader should take to learn more or act on this story
 
 Return ONLY valid JSON. No markdown, no code fences, no explanation.
 
 Article:
-Title: ${source.title}
-URL: ${source.url}
-Content: ${truncatedContent}`;
+Title: ${title}
+URL: ${url}
+Content: ${content}`;
+}
 
-      // Ollama doesn't guarantee response_format support across all models
-      const createOpts = {
-        model: ai.model,
-        messages: [{ role: "user" as const, content: prompt }],
-        temperature: 0.3,
-        // Reasoning models (e.g. Groq's gpt-oss) spend a large, variable share of the
-        // completion budget on internal reasoning before writing the JSON — too low a
-        // cap here silently truncates the response to nothing.
-        max_completion_tokens: 16000,
-        ...(ai.provider !== "ollama" && { response_format: { type: "json_object" as const } }),
-      };
-      const completion = await ai.client.chat.completions.create(createOpts);
+/** Call the configured LLM and return validated brief data. Throws on any failure. */
+export async function generateBriefData(title: string, url: string, content: string): Promise<BriefData> {
+  const ai = getAIClient();
+  if (!ai) throw new Error("No AI provider configured");
+  // 6000 chars fits most local-model context windows while giving plenty of article.
+  const truncated = content.slice(0, 6000);
+  const completion = await ai.client.chat.completions.create({
+    model: ai.model,
+    messages: [{ role: "user", content: buildBriefPrompt(title, url, truncated) }],
+    temperature: 0.3,
+    // Reasoning models (e.g. Groq's gpt-oss) spend a large, variable share of the
+    // completion budget on internal reasoning before writing the JSON — too low a
+    // cap silently truncates the response to nothing.
+    max_completion_tokens: 16000,
+    // Ollama doesn't guarantee response_format support across all models.
+    ...(ai.provider !== "ollama" && { response_format: { type: "json_object" as const } }),
+  });
+  return normalizeBriefData(extractJSON(completion.choices[0].message.content || "{}"), truncated);
+}
 
-      const raw = completion.choices[0].message.content || "{}";
-      briefData = normalizeBriefData(extractJSON(raw), truncatedContent);
-    } catch (aiErr: unknown) {
-      const msg = aiErr instanceof Error ? aiErr.message : String(aiErr);
-      console.warn(`AI brief generation failed (${ai.provider}), using fallback:`, msg);
-      briefData = deterministicBrief(source.title, source.url, source.content);
-    }
-  } else {
-    briefData = deterministicBrief(source.title, source.url, source.content);
+/**
+ * Get or create the brief for a source. AI briefs are cached; extractive
+ * fallbacks are regenerated on the next request (or when `force` is set).
+ */
+export async function generateBrief(sourceId: string, opts: { force?: boolean } = {}): Promise<Brief> {
+  const source = getSourceById(sourceId) as { id: string; title: string; url: string; content: string } | undefined;
+  if (!source) throw new Error("Source not found");
+
+  const existing = getBriefBySourceId(sourceId) as Brief | undefined;
+  if (existing && !opts.force && !existing.is_fallback) return existing;
+
+  let briefData: BriefData;
+  let isFallback = false;
+  try {
+    briefData = await generateBriefData(source.title, source.url, source.content);
+  } catch (err) {
+    console.warn("AI brief generation failed, using extractive fallback:", err instanceof Error ? err.message : err);
+    // Keep an existing fallback rather than churning it on every failed retry.
+    if (existing) return existing;
+    briefData = extractiveBrief(source.title, source.content);
+    isFallback = true;
   }
 
-  const id = uuidv4();
-  const now = new Date().toISOString();
-  const markdown = buildMarkdown(source.title, source.url, briefData);
-
-  const brief = {
-    id,
+  deleteBriefBySourceId(sourceId);
+  insertBrief({
+    id: uuidv4(),
     source_id: sourceId,
-    markdown,
+    markdown: buildMarkdown(source.title, source.url, briefData, isFallback),
     summary: briefData.summary,
     key_ideas: JSON.stringify(briefData.key_ideas),
     entities_topics: JSON.stringify(briefData.entities_topics),
@@ -187,9 +210,8 @@ Content: ${truncatedContent}`;
     product_opportunity_score: briefData.product_opportunity_score,
     recommended_next_action: briefData.recommended_next_action,
     why_it_matters: briefData.why_it_matters,
-    created_at: now,
-  };
-
-  insertBrief(brief);
+    is_fallback: isFallback ? 1 : 0,
+    created_at: new Date().toISOString(),
+  });
   return getBriefBySourceId(sourceId) as Brief;
 }

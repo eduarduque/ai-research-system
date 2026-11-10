@@ -42,7 +42,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             ))}
           </nav>
           <div className="hidden md:block px-4 py-3 border-t border-slate-800 text-xs text-slate-500">
-            MVP v1.0
+            <a href="https://github.com/eduarduque/ai-research-system" target="_blank" rel="noreferrer" className="hover:text-slate-300">
+              Source on GitHub
+            </a>
           </div>
         </aside>
         <main className="flex-1 overflow-auto p-4 md:p-8">{children}</main>

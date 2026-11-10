@@ -1,55 +1,62 @@
 import { getSources, getBriefs } from "./db";
 import type { Source, Brief, GraphNode, GraphEdge } from "./types";
 
+function slug(s: string): string {
+  return s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function parseList(json: string | null): string[] {
+  try {
+    const v = JSON.parse(json || "[]");
+    return Array.isArray(v) ? v.map(String).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Sources → topics/entities they mention → opportunities they suggest.
+ * Topics are merged across sources case-insensitively, which is what makes the
+ * graph useful: two articles that both mention "Anthropic" share one node.
+ * Opportunities hang off their source (not off every topic, which produced an
+ * n×m edge explosion), and node ids use the full slug so long labels can't collide.
+ */
 export function buildGraph(): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const sources = getSources() as Source[];
-  const briefs = getBriefs() as (Brief & { source_title: string })[];
+  const briefsBySource = new Map((getBriefs() as Brief[]).map((b) => [b.source_id, b]));
 
-  const nodes: GraphNode[] = [];
-  const edges: GraphEdge[] = [];
-  const seen = new Set<string>();
+  const nodes = new Map<string, GraphNode>();
+  const edges = new Map<string, GraphEdge>();
+  const addEdge = (source: string, target: string, label?: string) => {
+    const id = `e:${source}->${target}`;
+    if (!edges.has(id)) edges.set(id, { id, source, target, ...(label && { label }) });
+  };
 
   for (const source of sources) {
-    nodes.push({ id: `src-${source.id}`, label: source.title.slice(0, 40), type: "source" });
+    const srcId = `src:${source.id}`;
+    const brief = briefsBySource.get(source.id);
+    nodes.set(srcId, {
+      id: srcId,
+      label: source.title.slice(0, 48),
+      type: "source",
+      href: brief ? `/briefs/${brief.id}` : "/library",
+    });
 
-    const brief = briefs.find((b) => b.source_id === source.id);
     if (!brief) continue;
 
-    let topics: string[] = [];
-    let opportunities: string[] = [];
-    try {
-      topics = JSON.parse(brief.entities_topics || "[]");
-      opportunities = JSON.parse(brief.opportunity_ideas || "[]");
-    } catch {
-      continue;
+    for (const topic of parseList(brief.entities_topics).slice(0, 5)) {
+      const id = `topic:${slug(topic)}`;
+      if (id === "topic:") continue;
+      if (!nodes.has(id)) nodes.set(id, { id, label: topic.slice(0, 32), type: "topic" });
+      addEdge(srcId, id);
     }
-
-    for (const topic of topics.slice(0, 3)) {
-      const topicId = `topic-${topic.toLowerCase().replace(/\s+/g, "-").slice(0, 30)}`;
-      if (!seen.has(topicId)) {
-        nodes.push({ id: topicId, label: topic.slice(0, 30), type: "topic" });
-        seen.add(topicId);
-      }
-      edges.push({
-        id: `e-${source.id}-${topicId}`,
-        source: `src-${source.id}`,
-        target: topicId,
-      });
-
-      for (const opp of opportunities.slice(0, 2)) {
-        const oppId = `opp-${opp.toLowerCase().replace(/\s+/g, "-").slice(0, 30)}`;
-        if (!seen.has(oppId)) {
-          nodes.push({ id: oppId, label: opp.slice(0, 30), type: "opportunity" });
-          seen.add(oppId);
-        }
-        edges.push({
-          id: `e-${topicId}-${oppId}`,
-          source: topicId,
-          target: oppId,
-        });
-      }
+    for (const opp of parseList(brief.opportunity_ideas).slice(0, 2)) {
+      const id = `opp:${slug(opp)}`;
+      if (id === "opp:") continue;
+      if (!nodes.has(id)) nodes.set(id, { id, label: opp.length > 40 ? `${opp.slice(0, 39)}…` : opp, type: "opportunity" });
+      addEdge(srcId, id, "suggests");
     }
   }
 
-  return { nodes, edges };
+  return { nodes: [...nodes.values()], edges: [...edges.values()] };
 }
