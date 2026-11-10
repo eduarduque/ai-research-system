@@ -25,7 +25,6 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 \
 RUN groupadd --system app && useradd --system --gid app app && mkdir -p /app/data && chown app:app /app/data
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
-COPY --from=build --chown=app:app /app/public ./public
 COPY --from=build --chown=app:app /app/.cache/models ./.cache/models
 USER app
 VOLUME ["/app/data"]
