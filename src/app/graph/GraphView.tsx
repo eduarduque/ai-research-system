@@ -28,28 +28,53 @@ function CustomNode({ data }: { data: { label: string; nodeType: string } }) {
       style={{ borderColor: color }}
       className="px-3 py-2 rounded-lg border-2 bg-slate-800 text-slate-100 text-xs max-w-[140px] shadow-md cursor-pointer"
     >
-      <Handle type="target" position={Position.Top} style={{ background: color }} />
+      <Handle type="target" position={Position.Left} style={{ background: color }} />
       <div style={{ color }} className="font-bold text-[9px] uppercase tracking-wider mb-0.5">
         {data.nodeType}
       </div>
       <div className="leading-tight">{data.label}</div>
-      <Handle type="source" position={Position.Bottom} style={{ background: color }} />
+      <Handle type="source" position={Position.Right} style={{ background: color }} />
     </div>
   );
 }
 
 const nodeTypes: NodeTypes = { custom: CustomNode };
 
+// Layered layout: sources -> topics -> opportunities, left to right. Each layer wraps
+// into several columns so a large library stays roughly as wide as it is tall, and
+// layers are vertically centred on each other. Deterministic: no jumping between visits.
+const LAYER: Record<GraphNode["type"], number> = { source: 0, topic: 1, entity: 1, opportunity: 2 };
+const COL_W = 190;
+const ROW_H = 78;
+const LAYER_GAP = 140;
+
 function toFlowNodes(nodes: GraphNode[]): Node[] {
-  return nodes.map((n, i) => ({
-    id: n.id,
-    type: "custom",
-    position: {
-      x: (i % 6) * 200 + Math.random() * 30,
-      y: Math.floor(i / 6) * 160 + Math.random() * 30,
-    },
-    data: { label: n.label, nodeType: n.type },
-  }));
+  const layers: GraphNode[][] = [[], [], []];
+  for (const n of nodes) layers[LAYER[n.type] ?? 1].push(n);
+
+  const maxRows = Math.max(6, Math.ceil(Math.sqrt(nodes.length * 1.5)));
+  const shapes = layers.map((l) => {
+    const cols = Math.max(1, Math.ceil(l.length / maxRows));
+    return { cols, rows: Math.ceil(l.length / cols) || 0 };
+  });
+  const tallest = Math.max(...shapes.map((s) => s.rows));
+
+  const out: Node[] = [];
+  let x0 = 0;
+  layers.forEach((layer, li) => {
+    const { cols, rows } = shapes[li];
+    const yOffset = ((tallest - rows) * ROW_H) / 2;
+    layer.forEach((n, i) => {
+      out.push({
+        id: n.id,
+        type: "custom",
+        position: { x: x0 + Math.floor(i / rows) * COL_W, y: yOffset + (i % rows) * ROW_H },
+        data: { label: n.label, nodeType: n.type, href: n.href },
+      });
+    });
+    if (layer.length) x0 += cols * COL_W + LAYER_GAP;
+  });
+  return out;
 }
 
 function toFlowEdges(edges: GraphEdge[]): Edge[] {
@@ -57,7 +82,6 @@ function toFlowEdges(edges: GraphEdge[]): Edge[] {
     id: e.id,
     source: e.source,
     target: e.target,
-    label: e.label,
     style: { stroke: "#475569" },
     animated: false,
   }));
@@ -80,12 +104,8 @@ export default function GraphView() {
   }, []);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    if ((node.data as { nodeType: string }).nodeType === "source") {
-      // source node id format: src-<uuid>
-      const sourceId = node.id.replace(/^src-/, "");
-      window.open(`/library`, "_self");
-      void sourceId;
-    }
+    const href = (node.data as { href?: string }).href;
+    if (href) window.location.href = href;
   }, []);
 
   if (loading) {
@@ -117,18 +137,25 @@ export default function GraphView() {
           edges={edges}
           nodeTypes={nodeTypes}
           onNodeClick={onNodeClick}
+          colorMode="dark"
+          minZoom={0.1}
           fitView
-          fitViewOptions={{ padding: 0.2 }}
+          fitViewOptions={{ padding: 0.1 }}
+          // Custom nodes are measured after the first paint; fit again once they are.
+          onInit={(instance) => requestAnimationFrame(() => instance.fitView({ padding: 0.1 }))}
         >
           <Background color="#334155" gap={20} />
           <Controls />
           <MiniMap
             nodeColor={(n) => TYPE_COLORS[(n.data as { nodeType: string }).nodeType] || "#64748b"}
-            style={{ background: "#1e293b" }}
+            style={{ background: "#1e293b", width: 140, height: 90 }}
+            maskColor="rgba(15, 23, 42, 0.7)"
+            pannable
+            zoomable
           />
         </ReactFlow>
       </div>
-      <p className="text-xs text-slate-500 mt-2">Click a source node to view the library.</p>
+      <p className="text-xs text-slate-500 mt-2">Click a source node to open its brief. Topics shared by several sources are merged into one node.</p>
     </div>
   );
 }

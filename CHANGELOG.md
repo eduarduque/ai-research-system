@@ -1,6 +1,36 @@
 # CHANGELOG
 
-## [Unreleased]
+## [2.0.0] — 2026-11-09
+
+### Added
+
+- Chunk-level hybrid retrieval: BM25 + vector similarity fused with weighted reciprocal rank fusion
+- Free local embeddings (transformers.js, all-MiniLM-L6-v2) — semantic search with no paid API key
+- Eval harness (`npm run eval`) over a fictional 28-article corpus: retrieval Hit@1/Recall@5/MRR per retriever, answer fact recall, citation precision, abstention, brief grounding
+- Vitest suite (unit + integration, in-memory SQLite) and GitHub Actions CI (lint, typecheck, tests, build, retrieval-eval gate, Docker build)
+- SSRF protection for every user-supplied URL, including redirects and headless-browser sub-requests
+- Optional access token (`APP_ACCESS_TOKEN`) and per-IP rate limiting on LLM routes
+- Delete sources; regenerate briefs; one-tap "Discover" of new feed items; `/api/health`; `discover_latest` MCP tool
+- Dockerfile (standalone build, model baked in, non-root, health check), MIT license
+
+### Changed
+
+- Answers cite numbered passages; invalid citations are stripped and "Sources Used" is rebuilt from retrieval
+- Brief output validated with Zod; score clamped to 1–10; non-AI fallback is extractive and flagged instead of placeholder text
+- URLs canonicalized and unique-indexed; one `saveSource()` path for URL, RSS, discovery, seed and MCP
+- Slack events fail closed without a signing secret, ignore Slack retries and call the engine directly
+- Headless browser fallback is cross-platform and optional; bot-detection evasion removed
+- Knowledge graph merges topics case-insensitively, links opportunities to sources, and navigates to briefs
+- Seeding and re-indexing run in the background instead of blocking startup
+- Reference lists, footnotes and navboxes stripped at ingest (a Wikipedia page lost ~30% noise)
+- Brief generation retries once without strict JSON mode when the provider rejects its own JSON
+- Graph uses a wrapped layered layout, dark controls, and merges topics that differ only by a parenthetical
+
+### Removed
+
+- `/api/slack/research` stub, Next.js boilerplate assets, Nixpacks config (Railway now builds the Dockerfile)
+
+## [1.1.0]
 
 ### Added
 

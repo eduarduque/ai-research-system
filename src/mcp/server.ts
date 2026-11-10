@@ -15,6 +15,7 @@ import { ingestUrl } from "../lib/ingest";
 import { answerQuestion } from "../lib/ask";
 import { generateBrief } from "../lib/briefs";
 import { buildGraph } from "../lib/graph";
+import { discoverLatest } from "../lib/discover";
 
 const server = new McpServer({
   name: "ai-research-system",
@@ -39,7 +40,10 @@ server.registerTool(
   },
   async ({ url }) => {
     try {
-      return textResult(await ingestUrl(url));
+      const { source, alreadyResearched } = await ingestUrl(url);
+      // Omit full content from the tool result: it can be 20k chars and the client rarely needs it.
+      const { content, ...rest } = source;
+      return textResult({ ...rest, content_chars: content.length, already_researched: alreadyResearched });
     } catch (err) {
       return errorResult(err);
     }
@@ -67,11 +71,14 @@ server.registerTool(
   {
     title: "Generate Brief",
     description: "Generate (or fetch the existing) structured research brief — summary, key ideas, entities, opportunities — for a saved source.",
-    inputSchema: { source_id: z.string().describe("The id of the source to generate a brief for") },
+    inputSchema: {
+      source_id: z.string().describe("The id of the source to generate a brief for"),
+      force: z.boolean().optional().describe("Regenerate even if a brief already exists"),
+    },
   },
-  async ({ source_id }) => {
+  async ({ source_id, force }) => {
     try {
-      return textResult(await generateBrief(source_id));
+      return textResult(await generateBrief(source_id, { force }));
     } catch (err) {
       return errorResult(err);
     }
@@ -87,7 +94,11 @@ server.registerTool(
   },
   async () => {
     try {
-      return textResult(getSources());
+      return textResult(
+        (getSources() as { id: string; title: string; url: string; date_ingested: string }[]).map(
+          ({ id, title, url, date_ingested }) => ({ id, title, url, date_ingested })
+        )
+      );
     } catch (err) {
       return errorResult(err);
     }
@@ -104,6 +115,23 @@ server.registerTool(
   async () => {
     try {
       return textResult(buildGraph());
+    } catch (err) {
+      return errorResult(err);
+    }
+  }
+);
+
+server.registerTool(
+  "discover_latest",
+  {
+    title: "Discover Latest",
+    description: "Pull the newest items from all configured RSS feeds, skipping anything already researched, and save them as sources.",
+    inputSchema: { max_new: z.number().int().min(1).max(20).optional().describe("Maximum new sources to save (default 8)") },
+  },
+  async ({ max_new }) => {
+    try {
+      const r = await discoverLatest({ maxNew: max_new });
+      return textResult({ ...r, newSources: r.newSources.map(({ id, title, url }) => ({ id, title, url })) });
     } catch (err) {
       return errorResult(err);
     }

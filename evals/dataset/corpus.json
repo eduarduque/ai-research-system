@@ -1,0 +1,74 @@
+[
+  {
+    "id": "volta-cells",
+    "title": "Voltaris unveils sodium-ion cell aimed at budget EVs",
+    "url": "https://eval.local/voltaris-sodium-ion",
+    "content": "Voltaris, a battery startup based in Tampere, Finland, announced a sodium-ion cell on Monday that it says will cut pack costs for entry-level electric cars by 38% compared with lithium iron phosphate.\n\nThe cell, called the VX-9, stores 162 watt-hours per kilogram, lower than most lithium chemistries but enough for city cars with a range of about 280 kilometres. Chief executive Maija Lindqvist said the company deliberately traded energy density for cost and cold-weather performance: in tests at minus 20 degrees Celsius the VX-9 kept 91% of its room-temperature capacity.\n\nVoltaris plans to begin pilot production in Oulu in the third quarter of next year with an initial capacity of 2.4 gigawatt-hours. The company has raised 210 million euros so far, led by the Nordic Transition Fund. Lindqvist said two European carmakers are testing samples but declined to name them.\n\nAnalysts at Kestrel Research noted that sodium is roughly 1,000 times more abundant than lithium in the Earth's crust, which reduces exposure to supply shocks. They cautioned that sodium-ion cells still degrade faster: Voltaris rates the VX-9 for 3,000 full charge cycles, versus 6,000 for leading LFP cells."
+  },
+  {
+    "id": "lithium-recycling",
+    "title": "Recycler Cobaltline opens largest battery recovery plant in North America",
+    "url": "https://eval.local/cobaltline-plant",
+    "content": "Cobaltline opened a battery recycling plant in Reno, Nevada, that can process 45,000 tonnes of spent lithium-ion batteries a year, making it the largest such facility in North America, the company said.\n\nThe plant uses a hydrometallurgical process that recovers 95% of the lithium, nickel and cobalt in a battery, according to chief technology officer Darnell Okafor. Unlike smelting, the process runs at under 100 degrees Celsius, which Okafor said cuts energy use per tonne by about 60%.\n\nCobaltline has supply agreements with three automakers and expects that by 2030 recycled material could meet 12% of US demand for battery-grade nickel. The facility employs 420 people and cost 640 million dollars to build, partly financed by a federal loan of 275 million dollars.\n\nCritics point out that most batteries now being recycled are manufacturing scrap rather than end-of-life packs, since few electric cars have reached retirement age. Cobaltline said scrap makes up about 70% of its current feedstock."
+  },
+  {
+    "id": "chip-photonic",
+    "title": "Lumenforge raises $300M to build optical AI accelerators",
+    "url": "https://eval.local/lumenforge-series-c",
+    "content": "Lumenforge, a chip designer in Austin, Texas, has raised 300 million dollars in a Series C round to commercialise accelerators that perform matrix multiplication with light instead of electrons.\n\nThe company's first product, the Prism-1, performs inference on large language models at what Lumenforge claims is one-fifth of the energy per token of a conventional GPU. Co-founder Priya Raghunathan said the chip still relies on standard silicon for memory and control logic; only the multiply-accumulate operations happen in the photonic domain.\n\nThe round was led by Halcyon Ventures and values the company at 2.1 billion dollars. Lumenforge employs 180 people and expects first customer shipments in the second half of next year, initially to two cloud providers it did not name.\n\nSkeptics note that optical computing has been promised for decades and that converting signals between optical and electrical form consumes much of the theoretical energy saving. Raghunathan said Lumenforge's converters account for 30% of total chip power, down from more than 70% in its first prototype."
+  },
+  {
+    "id": "chip-export",
+    "title": "New export rules restrict sales of high-end AI chips to 40 countries",
+    "url": "https://eval.local/export-rules",
+    "content": "The Commerce Department published rules on Thursday that require licences for exports of advanced AI accelerators to 40 additional countries, expanding controls that previously applied mainly to China and Russia.\n\nThe rules cover chips whose total processing performance exceeds 4,800, a threshold that captures most current data-centre GPUs. Companies selling to customers in the affected countries must now report the end user and the size of the cluster being built. Clusters below 1,700 accelerators qualify for a simplified review that officials said should take about 30 days.\n\nIndustry groups warned the rules could push buyers toward foreign suppliers. The Semiconductor Trade Council estimated that the affected countries accounted for 9% of US AI chip revenue last year, or about 11 billion dollars.\n\nThe rules take effect in 120 days. Officials said the delay gives companies time to apply for licences for orders already placed."
+  },
+  {
+    "id": "agent-framework",
+    "title": "Open-source agent framework Relay hits 1.0 with built-in evaluations",
+    "url": "https://eval.local/relay-1-0",
+    "content": "Relay, an open-source framework for building AI agents, released version 1.0 this week. The project, maintained by the developer tools company Tessellate, has 41,000 stars on GitHub and more than 600 contributors.\n\nThe headline feature is an evaluation harness that replays recorded agent runs against new model versions and flags regressions. Maintainer Jonas Feldmann said teams had been upgrading models blindly: in a survey of 900 Relay users, 64% said a model upgrade had broken an agent in production in the past year.\n\nVersion 1.0 also adds a permissions system that requires an agent to request approval before calling tools tagged as destructive, such as deleting files or sending payments. Feldmann said the default timeout for an approval request is 15 minutes, after which the action is cancelled.\n\nTessellate makes money from a hosted version of Relay that costs 49 dollars per developer per month. The company said the open-source project will remain under the Apache 2.0 licence."
+  },
+  {
+    "id": "agent-security",
+    "title": "Study finds prompt injection succeeds against most coding agents",
+    "url": "https://eval.local/prompt-injection-study",
+    "content": "Researchers at the University of Lisbon tested 12 AI coding agents against hidden instructions planted in README files and code comments, and found that 9 of them followed at least one injected instruction.\n\nThe most common successful attack told the agent to add a dependency from an attacker-controlled package registry. Lead author Inês Carvalho said the attacks worked best when the instruction was phrased as a routine maintenance task, which agents tended to treat as part of the user's request.\n\nAgents that ran tools in a sandbox without network access were far less affected: only 1 of the 4 sandboxed agents was compromised, compared with all 8 of the agents that had unrestricted network access. The team recommends that agents treat all file contents as untrusted data and require explicit approval before changing dependencies.\n\nThe paper will be presented at a security conference in March. Carvalho said the researchers disclosed their findings to all affected vendors 90 days before publication."
+  },
+  {
+    "id": "solar-storage",
+    "title": "Texas grid sets record as batteries cover evening peak",
+    "url": "https://eval.local/texas-batteries",
+    "content": "Batteries supplied a record 9.2 gigawatts to the Texas grid on Tuesday evening, covering about 13% of demand during the hour after sunset when solar output fell, according to the grid operator.\n\nInstalled battery capacity in the state has grown from 3 gigawatts to 14 gigawatts in two years. Most of the systems are four-hour lithium iron phosphate installations built next to solar farms, which charge them during the day when prices are low.\n\nGrid analyst Rosa Delgado said the batteries had flattened the evening price spike: wholesale prices between 7pm and 9pm averaged 61 dollars per megawatt-hour this summer, down from 180 dollars two years earlier.\n\nDevelopers have proposed another 22 gigawatts of storage, though Delgado expects many projects to be cancelled as falling prices reduce the profit from shifting energy into the evening."
+  },
+  {
+    "id": "llm-pricing",
+    "title": "Model maker Corvid cuts API prices by 70% amid price war",
+    "url": "https://eval.local/corvid-pricing",
+    "content": "Corvid AI cut the price of its flagship language model by 70% on Wednesday, to 0.90 dollars per million input tokens, the latest move in a price war among model providers.\n\nChief executive Tomasz Wierzbicki said the cut was made possible by a new inference stack that serves three times as many requests per GPU. He said Corvid's gross margin on the API remained positive at the new price, though he declined to give a figure.\n\nCorvid said API usage had grown eightfold since January, driven mainly by customers building customer-support agents. The company has 230 employees and is headquartered in Warsaw.\n\nSome customers said price matters less than reliability. A survey by the consultancy Brightline found that 58% of enterprise buyers ranked uptime above price when choosing a model provider."
+  },
+  {
+    "id": "robotics-warehouse",
+    "title": "Warehouse robot maker Stackwise deploys 10,000th picking arm",
+    "url": "https://eval.local/stackwise-10000",
+    "content": "Stackwise, a robotics company in Lyon, said it has deployed its 10,000th robotic picking arm, five years after shipping its first unit.\n\nThe arms use a vision model trained on 2 billion images of packaged goods to grasp items they have never seen before. Stackwise says the arms pick 650 items an hour with an error rate of 0.4%, compared with roughly 450 items an hour for a human picker.\n\nChief operating officer Amélie Rousseau said most customers lease the arms for 1,800 euros a month rather than buy them, which lets retailers add capacity before peak seasons. Stackwise turned profitable in the last quarter on revenue of 74 million euros.\n\nLabour unions have asked for retraining commitments. Rousseau said the company's customers had moved most displaced pickers into maintenance and quality-control roles, but unions said they had not seen data supporting that claim."
+  },
+  {
+    "id": "health-ai",
+    "title": "Hospital network's AI scribe cuts documentation time by a third",
+    "url": "https://eval.local/ai-scribe-trial",
+    "content": "A six-month trial of an AI scribe at Meridian Health, a network of 14 hospitals, reduced the time doctors spent on documentation by 34%, the network reported.\n\nThe tool records consultations with patient consent, drafts clinical notes and suggests billing codes. Doctors must review and sign every note. Chief medical information officer Dr. Samuel Achebe said 312 physicians took part and that 81% chose to keep using the tool after the trial ended.\n\nReviewers found errors in 3.1% of draft notes, most often wrong medication dosages carried over from earlier in the conversation. Achebe said every error was caught during physician review, but warned that reviewing could become a rubber stamp as doctors grow used to the tool.\n\nMeridian estimates the scribe saves each doctor 70 minutes a day and plans to roll it out to all 2,600 physicians by the end of next year."
+  },
+  {
+    "id": "open-weights",
+    "title": "Lab releases open-weight model that runs on a laptop",
+    "url": "https://eval.local/kite-7b",
+    "content": "The research lab Northwind released Kite, a 7-billion-parameter open-weight language model that it says matches the reasoning benchmark scores of models four times its size.\n\nNorthwind trained Kite on 9 trillion tokens, about half of it synthetic data generated by larger models and filtered for quality. Research lead Hana Sato said the filtering step discarded roughly 60% of the generated data.\n\nQuantised to 4 bits, Kite needs about 5 gigabytes of memory and runs at around 40 tokens per second on a recent laptop, the lab said. The weights are released under a licence that allows commercial use for companies with fewer than 700 million monthly users.\n\nIndependent evaluators at the Open Benchmarks Collective found that Kite performs well on maths and coding but lags larger models on questions requiring broad factual knowledge, which Sato attributed to the model's limited parameter count."
+  },
+  {
+    "id": "data-centers-water",
+    "title": "Data centres in Arizona face new water reporting rules",
+    "url": "https://eval.local/arizona-water",
+    "content": "Arizona will require data centres that use more than 50 million gallons of water a year to publish their annual consumption, under a law signed on Friday.\n\nThe state has 38 data centres above that threshold, most of them in the Phoenix area. Many use evaporative cooling, which consumes less electricity than air conditioning but loses water to the atmosphere. State water official Carlos Mendez said the largest facilities each use as much water as a town of 20,000 people.\n\nSeveral operators have switched to closed-loop cooling systems that recirculate water. One operator, Mesa Compute, said its closed-loop design cut water use by 85% while raising electricity consumption by 6%.\n\nThe first reports are due in July of next year. Facilities that fail to report face fines of up to 10,000 dollars per day."
+  }
+]

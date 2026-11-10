@@ -23,29 +23,31 @@ const navLinks = [
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={geist.variable}>
-      <body className="min-h-screen flex bg-slate-900 text-slate-100">
-        <aside className="w-52 shrink-0 bg-slate-950 border-r border-slate-800 flex flex-col">
-          <div className="px-4 py-5 border-b border-slate-800">
+      <body className="min-h-screen flex flex-col md:flex-row bg-slate-900 text-slate-100">
+        <aside className="w-full md:w-52 shrink-0 bg-slate-950 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col">
+          <div className="px-4 py-3 md:py-5 border-b border-slate-800">
             <span className="text-xs font-bold uppercase tracking-widest text-sky-400">
               AI Research
             </span>
           </div>
-          <nav className="flex-1 py-4">
+          <nav className="flex flex-row md:flex-col overflow-x-auto md:overflow-visible md:flex-1 md:py-4">
             {navLinks.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
-                className="block px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                className="shrink-0 whitespace-nowrap px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
               >
                 {label}
               </Link>
             ))}
           </nav>
-          <div className="px-4 py-3 border-t border-slate-800 text-xs text-slate-500">
-            MVP v1.0
+          <div className="hidden md:block px-4 py-3 border-t border-slate-800 text-xs text-slate-500">
+            <a href="https://github.com/eduarduque/ai-research-system" target="_blank" rel="noreferrer" className="hover:text-slate-300">
+              Source on GitHub
+            </a>
           </div>
         </aside>
-        <main className="flex-1 overflow-auto p-8">{children}</main>
+        <main className="flex-1 overflow-auto p-4 md:p-8">{children}</main>
       </body>
     </html>
   );

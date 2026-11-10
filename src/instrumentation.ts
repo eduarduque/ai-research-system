@@ -7,8 +7,10 @@ export async function register() {
     process.env.NEXT_RUNTIME === "nodejs" &&
     process.env.NEXT_PHASE !== "phase-production-build"
   ) {
-    const { seedDefaultSources } = await import("./lib/seed");
-    await seedDefaultSources();
+    // Seed + backfill in the background: first-boot embedding model download and
+    // feed fetching must never delay the server from accepting requests.
+    const { seedAndBackfill } = await import("./lib/seed");
+    void seedAndBackfill();
 
     // Weekly Slack digest — Mondays at 8:00 AM
     if (process.env.SLACK_WEBHOOK_URL && !global.__slackCronRegistered) {

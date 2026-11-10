@@ -1,0 +1,98 @@
+[
+  {
+    "id": "d-sodium-china",
+    "title": "Hexian Power starts mass production of sodium-ion packs for scooters",
+    "url": "https://eval.local/d/hexian-sodium",
+    "content": "Hexian Power began mass production of sodium-ion battery packs for electric scooters and three-wheelers at a plant in Hefei. The company said the packs cost 22% less than equivalent lithium iron phosphate packs and deliver 140 watt-hours per kilogram. Hexian expects to ship 6 million packs this year, mostly to delivery fleets in Southeast Asia. Its chief engineer said cold-weather performance was less important for its customers than price and safety, since sodium-ion cells are less prone to thermal runaway."
+  },
+  {
+    "id": "d-solid-state",
+    "title": "Solid-state battery maker Quanta Cell delays launch to 2029",
+    "url": "https://eval.local/d/quanta-delay",
+    "content": "Quanta Cell pushed back the commercial launch of its solid-state battery to 2029, citing difficulty scaling the ceramic separator. The cells reached 410 watt-hours per kilogram in the lab, more than double many lithium iron phosphate cells, but yields on the pilot line remain below 50%. The company has raised 1.3 billion dollars and has a supply deal with one luxury carmaker. Analysts said the delay showed that energy density gains are still years from reaching affordable cars."
+  },
+  {
+    "id": "d-recycling-europe",
+    "title": "German recycler ReCirc opens battery black-mass facility",
+    "url": "https://eval.local/d/recirc",
+    "content": "ReCirc opened a facility near Leipzig that shreds 18,000 tonnes of lithium-ion batteries a year into black mass, the powder that contains lithium, nickel and cobalt. The black mass is shipped to refineries for chemical recovery. ReCirc said EU rules requiring minimum recycled content in new batteries from 2031 had made the plant viable. The facility cost 150 million euros and employs 130 people. Like other recyclers, ReCirc said most of its feedstock is currently scrap from gigafactories."
+  },
+  {
+    "id": "d-recycling-smelter",
+    "title": "Mining group expands smelting-based battery recycling in Ontario",
+    "url": "https://eval.local/d/ontario-smelter",
+    "content": "A mining group said it will expand a smelter in Sudbury, Ontario, to recover nickel and cobalt from 25,000 tonnes of batteries a year. Smelting is energy intensive but tolerates mixed and contaminated feedstock, the company said. Lithium is lost to slag in the process unless an additional recovery step is added, which the company plans to install by 2028. The expansion is backed by a provincial grant of 80 million dollars."
+  },
+  {
+    "id": "d-photonic-europe",
+    "title": "Dutch startup Glasswing demonstrates photonic interconnect for data centres",
+    "url": "https://eval.local/d/glasswing",
+    "content": "Glasswing, based in Eindhoven, demonstrated a photonic interconnect that moves data between GPUs using light, which it says cuts the energy of chip-to-chip communication by 75%. Unlike optical computing companies, Glasswing does not perform calculations with light; it only replaces copper links. The company raised 90 million euros in a Series B round and expects samples next spring. Its chief executive said interconnect now accounts for a growing share of data-centre power as clusters scale."
+  },
+  {
+    "id": "d-gpu-startup",
+    "title": "Inference chip startup Ferrum claims 4x efficiency over GPUs",
+    "url": "https://eval.local/d/ferrum",
+    "content": "Ferrum, a startup in Toronto, unveiled an inference accelerator built from conventional silicon that it says is four times as energy efficient as a GPU for serving language models. The chip uses large on-die SRAM to avoid fetching weights from external memory. Ferrum raised 180 million dollars at a valuation of 900 million dollars and has 95 employees. It plans to sell complete servers rather than individual chips."
+  },
+  {
+    "id": "d-export-china",
+    "title": "China responds to chip controls with rare-earth export licensing",
+    "url": "https://eval.local/d/rare-earth",
+    "content": "China's commerce ministry said exports of seven rare-earth elements used in magnets and semiconductors would require licences from next month. The move follows years of US restrictions on advanced chip sales to Chinese firms. Industry groups said licence reviews could take up to 45 days, disrupting supply chains for electric motors and defence equipment. China produces about 70% of the world's mined rare earths."
+  },
+  {
+    "id": "d-agent-startup",
+    "title": "Agent startup Loomwork raises $60M for browser automation",
+    "url": "https://eval.local/d/loomwork",
+    "content": "Loomwork raised 60 million dollars to build AI agents that operate web browsers on behalf of office workers. The company's agents fill in forms, reconcile invoices and update CRM records. Loomwork said customers run 2 million agent tasks a month and that 87% complete without human intervention. The startup charges per completed task rather than per seat, which it said aligns its pricing with the value customers receive."
+  },
+  {
+    "id": "d-agent-observability",
+    "title": "Monitoring tool Tracewell adds cost tracking for LLM agents",
+    "url": "https://eval.local/d/tracewell",
+    "content": "Tracewell, an observability company, added a feature that tracks how much each AI agent run costs in model tokens and tool calls. The company said customers had discovered runaway agents that looped for hours, in one case spending 4,000 dollars in a single night. Tracewell can now stop a run automatically when it exceeds a budget. The feature is included in its team plan, which costs 29 dollars per user per month."
+  },
+  {
+    "id": "d-security-supplychain",
+    "title": "Malicious packages targeting AI developers surge, registry says",
+    "url": "https://eval.local/d/malicious-packages",
+    "content": "A major package registry said it removed 3,200 malicious packages in the last quarter that impersonated popular AI and machine learning libraries. Many used names one character away from legitimate packages. The registry now requires two-factor authentication for maintainers of its 5,000 most downloaded projects. Security researchers warned that AI coding tools that install dependencies automatically could spread such packages faster than human developers would."
+  },
+  {
+    "id": "d-grid-california",
+    "title": "California curtails record solar output as transmission lags",
+    "url": "https://eval.local/d/california-curtailment",
+    "content": "California's grid operator curtailed a record 3.4 terawatt-hours of solar generation in the first half of the year because transmission lines could not carry the power to where it was needed. Midday wholesale prices fell below zero on 140 days. Officials said new battery installations had helped but that transmission upgrades approved in 2023 would not be finished until 2030."
+  },
+  {
+    "id": "d-pricing-cloud",
+    "title": "Cloud provider bundles model API credits with compute discounts",
+    "url": "https://eval.local/d/cloud-credits",
+    "content": "A large cloud provider began offering model API credits to customers who commit to three-year compute contracts, a move analysts said was aimed at locking in AI startups. Customers committing 10 million dollars or more receive credits worth 15% of their contract. The provider also cut the price of its smaller model by 40%, to 0.15 dollars per million input tokens."
+  },
+  {
+    "id": "d-robotics-humanoid",
+    "title": "Humanoid robot pilot at car plant ends after six months",
+    "url": "https://eval.local/d/humanoid-pilot",
+    "content": "A carmaker ended a six-month pilot of humanoid robots at its plant in Spartanburg, saying the robots completed only 40% of assigned tasks without help. The robots moved parts between stations at about one-third the speed of a human worker. The company said it would continue to evaluate humanoids but would focus near-term automation spending on fixed robotic arms and autonomous carts."
+  },
+  {
+    "id": "d-health-imaging",
+    "title": "Radiology AI flags lung nodules missed by doctors in study",
+    "url": "https://eval.local/d/radiology-ai",
+    "content": "A study across 9 hospitals found that an AI system reviewing chest CT scans flagged 11% more early-stage lung nodules than radiologists working alone. False positives rose by 4%, leading to additional follow-up scans. The authors said the system worked best as a second reader rather than a replacement, and that hospitals should track how often radiologists overrule it."
+  },
+  {
+    "id": "d-small-model",
+    "title": "Phone maker ships on-device 3B model for offline assistant",
+    "url": "https://eval.local/d/on-device-3b",
+    "content": "A phone maker said its next flagship will run a 3-billion-parameter language model entirely on the device, allowing its assistant to summarise messages and draft replies offline. The model occupies about 2 gigabytes of storage after compression. The company said on-device processing improves privacy but that complex requests will still be sent to cloud models with user permission."
+  },
+  {
+    "id": "d-water-texas",
+    "title": "Texas data centre boom strains water supplies near Austin",
+    "url": "https://eval.local/d/texas-water",
+    "content": "Water utilities near Austin warned that proposed data centres could require 30 million gallons a day at full build-out, equivalent to the use of 300,000 residents. Unlike Arizona, Texas has no requirement for data centres to report water use. Several developers said they would use air cooling or treated wastewater to reduce demand on drinking-water supplies."
+  }
+]
