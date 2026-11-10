@@ -10,7 +10,16 @@ import type { Source } from "./types";
 // Pages with less than this many characters are considered JS-rendered and get a browser fallback
 const THIN_CONTENT_THRESHOLD = 500;
 
-export async function ingestUrl(url: string): Promise<Source> {
+// Some share sheets (e.g. Google's share.google links) copy a URL without
+// a scheme — fetch() throws immediately on those, so add one if missing.
+export function normalizeUrl(rawUrl: string): string {
+  const trimmed = rawUrl.trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+export async function ingestUrl(rawUrl: string): Promise<Source> {
+  const url = normalizeUrl(rawUrl);
+
   let html: string;
   try {
     const res = await fetch(url, {

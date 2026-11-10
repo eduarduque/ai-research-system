@@ -153,6 +153,10 @@ Content: ${truncatedContent}`;
         model: ai.model,
         messages: [{ role: "user" as const, content: prompt }],
         temperature: 0.3,
+        // Reasoning models (e.g. Groq's gpt-oss) spend a large, variable share of the
+        // completion budget on internal reasoning before writing the JSON — too low a
+        // cap here silently truncates the response to nothing.
+        max_completion_tokens: 16000,
         ...(ai.provider !== "ollama" && { response_format: { type: "json_object" as const } }),
       };
       const completion = await ai.client.chat.completions.create(createOpts);

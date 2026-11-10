@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { insertSource, getSourceById, updateSourceEmbedding } from "@/lib/db";
+import { insertSource, getSourceById, getSourceByUrl, updateSourceEmbedding } from "@/lib/db";
 import { embedText } from "@/lib/embeddings";
 
 export async function POST(req: NextRequest) {
@@ -8,6 +8,11 @@ export async function POST(req: NextRequest) {
     const { title, link, content } = await req.json();
     if (!title || !link) {
       return NextResponse.json({ error: "title and link are required" }, { status: 400 });
+    }
+
+    const existing = getSourceByUrl(link);
+    if (existing) {
+      return NextResponse.json({ ...existing, already_researched: true }, { status: 200 });
     }
 
     const id = uuidv4();
@@ -30,7 +35,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(getSourceById(id), { status: 201 });
+    return NextResponse.json({ ...(getSourceById(id) as object), already_researched: false }, { status: 201 });
   } catch (err) {
     console.error("rss/ingest error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

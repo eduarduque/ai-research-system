@@ -100,6 +100,10 @@ export function getSourceById(id: string) {
   return getDb().prepare("SELECT * FROM sources WHERE id = ?").get(id);
 }
 
+export function getSourceByUrl(url: string) {
+  return getDb().prepare("SELECT * FROM sources WHERE url = ?").get(url);
+}
+
 export function insertSource(source: {
   id: string;
   title: string;
