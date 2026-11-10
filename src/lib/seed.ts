@@ -1,55 +1,22 @@
-import Parser from "rss-parser";
-import { v4 as uuidv4 } from "uuid";
-import { getSources, insertSource, updateSourceEmbedding } from "./db";
-import { embedText } from "./embeddings";
+import { countSources } from "./db";
+import { discoverLatest } from "./discover";
+import { reindexStale } from "./indexing";
 
-const DEFAULT_FEEDS = [
-  { name: "Hacker News", url: "https://news.ycombinator.com/rss" },
-  { name: "TechCrunch AI", url: "https://techcrunch.com/category/artificial-intelligence/feed/" },
-  { name: "VentureBeat AI", url: "https://venturebeat.com/category/ai/feed/" },
-  { name: "The Verge AI", url: "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml" },
-  { name: "MIT Technology Review", url: "https://www.technologyreview.com/feed/" },
-];
-
-const ITEMS_PER_FEED = 2;
-
-export async function seedDefaultSources() {
-  const existing = getSources() as { id: string }[];
-  if (existing.length > 0) return;
-
-  const parser = new Parser({ timeout: 10000 });
-
-  for (const feed of DEFAULT_FEEDS) {
-    try {
-      const parsed = await parser.parseURL(feed.url);
-      const items = parsed.items.slice(0, ITEMS_PER_FEED);
-
-      for (const item of items) {
-        if (!item.link) continue;
-
-        const id = uuidv4();
-        const rawContent = item.contentSnippet || item.content || item.title || "";
-        const source = {
-          id,
-          title: (item.title || item.link).trim(),
-          url: item.link,
-          content: rawContent.slice(0, 20000),
-          date_ingested: new Date().toISOString(),
-        };
-
-        try {
-          insertSource(source);
-
-          const embedding = await embedText(
-            `${source.title}\n\n${source.content.slice(0, 8000)}`
-          );
-          updateSourceEmbedding(id, embedding);
-        } catch {
-          // skip if insert fails (e.g. duplicate)
-        }
-      }
-    } catch {
-      // skip unreachable feeds silently
+/**
+ * First-boot experience: pull a couple of items from each default feed so the
+ * library, search and graph aren't empty. Also backfills chunks/embeddings for
+ * sources created by older versions (or after switching embedding models).
+ * Runs in the background — never blocks server startup.
+ */
+export async function seedAndBackfill() {
+  try {
+    if (countSources() === 0 && process.env.SEED_ON_BOOT !== "false") {
+      const { newSources } = await discoverLatest({ itemsPerFeed: 2, maxNew: 10 });
+      console.log(`Seeded ${newSources.length} sources from default feeds.`);
     }
+    const reindexed = await reindexStale();
+    if (reindexed > 0) console.log(`Indexed ${reindexed} source(s) for retrieval.`);
+  } catch (err) {
+    console.warn("Seed/backfill failed:", err instanceof Error ? err.message : err);
   }
 }

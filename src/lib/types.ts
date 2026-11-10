@@ -17,6 +17,8 @@ export type Brief = {
   product_opportunity_score: number | null;
   recommended_next_action: string | null;
   why_it_matters: string | null;
+  /** 1 when produced by the extractive (non-AI) fallback; regenerated on next request. */
+  is_fallback: number;
   created_at: string;
 };
 
@@ -38,6 +40,8 @@ export type GraphNode = {
   id: string;
   label: string;
   type: "source" | "topic" | "entity" | "opportunity";
+  /** Where clicking the node should navigate (source → its brief or the library). */
+  href?: string;
 };
 
 export type GraphEdge = {

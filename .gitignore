@@ -45,3 +45,6 @@ next-env.d.ts
 /data/research.db
 /data/research.db-shm
 /data/research.db-wal
+
+# local model cache (transformers.js embeddings)
+/.cache/
