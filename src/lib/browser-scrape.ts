@@ -1,54 +1,57 @@
-import puppeteer from "puppeteer-core";
+import fs from "fs";
+import { assertPublicUrl } from "./url";
 
-const CHROME_PATH = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+const CANDIDATE_PATHS = [
+  process.env.CHROME_PATH,
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
+  "/usr/bin/google-chrome",
+  "/usr/bin/google-chrome-stable",
+];
 
-export async function scrapeWithBrowser(
-  url: string
-): Promise<{ title: string; content: string } | null> {
+export function findChrome(): string | null {
+  for (const p of CANDIDATE_PATHS) if (p && fs.existsSync(/*turbopackIgnore: true*/ p)) return p;
+  return null;
+}
+
+/**
+ * Render a JavaScript-heavy page in headless Chrome/Chromium and return its text.
+ * Optional: returns null when no browser is installed or BROWSER_SCRAPE=false, and
+ * the caller falls back to whatever static extraction produced.
+ */
+export async function scrapeWithBrowser(url: string): Promise<{ title: string; content: string } | null> {
+  if (process.env.BROWSER_SCRAPE === "false") return null;
+  const executablePath = findChrome();
+  if (!executablePath) return null;
+
+  const puppeteer = (await import("puppeteer-core")).default;
   let browser;
   try {
     browser = await puppeteer.launch({
-      executablePath: CHROME_PATH,
-      // headless: false looks like a real user — some sites (openai.com) block
-      // headless:true even with stealth flags, so we use visible Chrome briefly
-      headless: false,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-gpu",
-        "--window-size=1280,800",
-        // Prevents sites from detecting automated Chrome via Blink feature flags
-        "--disable-blink-features=AutomationControlled",
-      ],
+      executablePath,
+      headless: true,
+      // --no-sandbox is required when running as root in containers.
+      args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
     });
-
     const page = await browser.newPage();
 
-    // Hide the navigator.webdriver property that sites check for bot detection
-    await page.evaluateOnNewDocument(() => {
-      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    // Block navigations/subrequests to internal addresses (SSRF via in-page redirects).
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      assertPublicUrl(req.url())
+        .then(() => req.continue())
+        .catch(() => req.abort("blockedbyclient"));
     });
 
-    await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    );
-
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
-
-    // Give JS-rendered content time to paint
-    await new Promise((r) => setTimeout(r, 3000));
-
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 25000 });
     const result = await page.evaluate(() => {
-      document
-        .querySelectorAll("script,style,nav,footer,header,iframe,[role='navigation']")
-        .forEach((el) => el.remove());
-
-      return {
-        title: document.title.trim(),
-        content: (document.body.innerText || "").trim(),
-      };
+      document.querySelectorAll("script,style,nav,footer,header,iframe,[role='navigation']").forEach((el) => el.remove());
+      return { title: document.title.trim(), content: (document.body.innerText || "").trim() };
     });
-
     return result.content.length > 100 ? result : null;
   } catch (err) {
     console.warn("Browser scrape failed:", err instanceof Error ? err.message : err);

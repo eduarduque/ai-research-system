@@ -1,25 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ingestUrl, normalizeUrl } from "@/lib/ingest";
-import { getSourceByUrl } from "@/lib/db";
+import { z } from "zod";
+import { ingestUrl, IngestError } from "@/lib/ingest";
+import { parseBody } from "@/lib/http";
+
+const Body = z.object({ url: z.string().trim().min(1, "url is required").max(2048) });
 
 export async function POST(req: NextRequest) {
+  const { data, error } = await parseBody(req, Body);
+  if (error) return error;
   try {
-    const { url } = await req.json();
-    if (!url || typeof url !== "string") {
-      return NextResponse.json({ error: "url is required" }, { status: 400 });
-    }
-
-    const existing = getSourceByUrl(normalizeUrl(url));
-    if (existing) {
-      return NextResponse.json({ ...existing, already_researched: true }, { status: 200 });
-    }
-
-    const source = await ingestUrl(url);
-    return NextResponse.json({ ...source, already_researched: false }, { status: 201 });
+    const { source, alreadyResearched } = await ingestUrl(data.url);
+    return NextResponse.json(
+      { ...source, already_researched: alreadyResearched },
+      { status: alreadyResearched ? 200 : 201 }
+    );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Internal server error";
-    const status = msg.startsWith("Failed to fetch") || msg.startsWith("Could not extract") ? 422 : 500;
-    if (status === 500) console.error("ingest/url error:", err);
-    return NextResponse.json({ error: msg }, { status });
+    if (err instanceof IngestError) return NextResponse.json({ error: err.message }, { status: 422 });
+    console.error("ingest/url error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
