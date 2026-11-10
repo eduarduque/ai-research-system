@@ -22,6 +22,9 @@
 - Headless browser fallback is cross-platform and optional; bot-detection evasion removed
 - Knowledge graph merges topics case-insensitively, links opportunities to sources, and navigates to briefs
 - Seeding and re-indexing run in the background instead of blocking startup
+- Reference lists, footnotes and navboxes stripped at ingest (a Wikipedia page lost ~30% noise)
+- Brief generation retries once without strict JSON mode when the provider rejects its own JSON
+- Graph uses a wrapped layered layout, dark controls, and merges topics that differ only by a parenthetical
 
 ### Removed
 

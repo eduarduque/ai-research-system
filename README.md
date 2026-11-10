@@ -8,11 +8,29 @@ A self-hosted research assistant: save articles and RSS items, get **grounded AI
 Runs entirely free: Groq's free tier for the LLM, and a local embedding model for semantic search (no API key). Also works with OpenAI or fully offline with Ollama.
 
 <p align="center">
-  <img src="docs/screenshots/ask.png" width="49%" alt="Cited answer with retrieved passages" />
-  <img src="docs/screenshots/brief.png" width="49%" alt="Structured research brief" />
+  <img src="docs/screenshots/ask.png" width="49%" alt="Cited answer: every claim links to a retrieved passage" />
+  <img src="docs/screenshots/brief.png" width="49%" alt="Structured research brief with grounded entities" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/graph.png" width="49%" alt="Knowledge graph: sources, shared topics and opportunities" />
+  <img src="docs/screenshots/library.png" width="49%" alt="Research library with opportunity scores" />
 </p>
 
-<!-- RESULTS -->
+## Results
+
+Measured by the [eval harness](evals/RESULTS.md) on a fictional 28-article corpus with near-duplicate distractors, so the model can't answer from memory (38 questions, Groq `gpt-oss-20b`, local MiniLM embeddings):
+
+| | |
+|---|---|
+| Retrieval Hit@1: BM25 → equal-weight hybrid → **tuned hybrid** | 91.4% → 94.3% → **100%** (in-sample sweep; see caveats) |
+| Answers that cite a retrieved passage | **100%** |
+| Citations pointing at a correct source | **95.7%** |
+| Expected fact present in answer | **98.6%** |
+| Refuses unanswerable questions | **3 / 3** |
+| Briefs passing schema validation | 75% → **100%** after eval-driven fixes |
+| Numbers in briefs that appear in the source | **99%** |
+
+The [write-up](evals/RESULTS.md) separates real system fixes from fixes to the scorer, and lists the limitations.
 
 ## What's interesting here
 
@@ -126,7 +144,7 @@ A project-scoped `.mcp.json` is included, so opening this folder in Claude Code 
 ## Development
 
 ```bash
-npm test                          # 76 unit + integration tests (in-memory SQLite, no network)
+npm test                          # 83 unit + integration tests (in-memory SQLite, no network)
 npm run lint && npm run typecheck
 npm run eval -- --retrieval-only  # retrieval benchmark, no LLM needed
 npm run eval                      # + answers and briefs with your configured LLM
